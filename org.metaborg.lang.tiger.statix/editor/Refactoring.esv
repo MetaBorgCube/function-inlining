@@ -1,0 +1,9 @@
+module Refactoring
+// File added by Loek
+
+menus
+  menu: "Refactoring"
+    action: "Rename" = rename-menu-action
+    
+  menu: "Debugging" (openeditor)
+    action: "Inline Function" = inline-function-menu-action

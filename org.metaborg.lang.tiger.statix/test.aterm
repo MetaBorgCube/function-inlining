@@ -1,0 +1,16 @@
+Mod(
+  Let(
+    [ FunDec(
+        "not"
+      , [FArg("j", Tid("int"))]
+      , Tid("int")
+      , If(
+          Eq(Var("j"), Int("0"))
+        , Int("1")
+        , Int("0")
+        )
+      )
+    ]
+  , [Call("not", [Int("5")])]
+  )
+)

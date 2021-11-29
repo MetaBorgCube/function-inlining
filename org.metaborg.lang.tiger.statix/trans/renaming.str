@@ -1,0 +1,13 @@
+module renaming
+// File added by Loek
+
+imports
+  statixruntime
+  statix/runtime/renaming
+
+  pp
+  analysis
+
+rules
+  rename-menu-action = rename-action(construct-textual-change,
+    editor-analyze, fail)

@@ -1,0 +1,61 @@
+module inlinefunction
+// File added by Loek
+
+imports
+  analysis
+  
+rules
+  inline-function-menu-action = inline-function-action
+  
+  inline-function-action: (selected, temp, ast, path, project-path) -> (filename, result)
+    with 
+        filename := <guarantee-extension(|"inlined.tig")> path
+      ; definition-node := <get-definition-node> (selected, ast)
+      ; <?Call(name, args)> selected
+      ; <?FunDec(_, params, _, _)> definition-node
+      ; new-vars := <strip-annos> (<declare-parameters> (args, params))
+      ; new-ast := <replace-function> (name, definition-node, new-vars, ast) // Replace function call node with function body.
+      ; result := <pp-debug> new-ast
+
+  // Finds the FunDec node. First it gets the TermIndex from <get-definition-index>, then it finds the node using that index.
+  get-definition-node: (t, ast) -> definition-node
+    with
+        definition-index := <get-definition-index> t
+      ; [definition-node] := <collect(check-for-definition(|definition-index))> ast
+      
+  // Finds the TermIndex annotation value of the node that is referenced by the Ref() relation of t.
+  get-definition-index: t -> dec-index
+    where
+  	    <?Call(name, _)> t
+  	  ; dec := <stx-get-ast-ref(|<stx-get-ast-analysis> name)> name
+  	  ; dec-index := <stx--get-ast-index> dec
+  
+  // The Ref() relation points to the function name instead of the whole node. 
+  // This function extracts the whole node by finding the name first.
+  check-for-definition(|termindex): t -> t
+    where
+        <?FunDec(name, _, _, _)> t
+      ; <eq> (<stx--get-ast-index> name, termindex)
+  
+  // Creates a list of VarDec() nodes based on the arguments of the function call.
+  declare-parameters: ([], []) -> []
+  declare-parameters: ([a|args], [FArg(name, type)|params]) -> variables
+    with
+      variables := [VarDec(name, type, a) | <declare-parameters> (args, params)]
+      
+  replace-function: (name, function, new-vars, ast) -> new-ast
+    with
+        <debug> function
+      ; call-replaced := <oncetd(replace-call(|name, function))> ast
+      ; new-ast := <oncetd(replace-definition(|function, new-vars))> call-replaced
+  
+  // Replaces the function call with the function body. 
+  // It won't replace a different function call because the TermIndex has to be equivalent.
+  replace-call(|name1, FunDec(_, _, _, body)): Call(name2, _) -> body
+    where
+      <eq> (name1, name2)
+  
+  
+  replace-definition(|function, new-vars): Let(decs, body) -> Let(new-decs, body)
+    where
+      new-decs := <concat> [new-vars, <filter(not(?function))> decs]
