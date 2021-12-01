@@ -1,0 +1,50 @@
+module syntax/preprocessor
+
+language cpp20
+
+test include directive [[
+
+#include <aword.h>
+#include "../localfile.h"
+
+]] parse succeeds
+
+test multiline include directive [[
+#include <
+ wrong.h
+ >
+]] parse fails
+
+//test basic defines [[
+//#define ONEHUNDRED 100
+//
+//#undef ONEHUNDRED
+//
+//]] parse succeeds
+
+test lowercase define [[
+#define onehundred 100
+
+#undef onehundred
+]] parse succeeds
+
+test multiline define [[
+#define test x + \
+  b
+]] parse succeeds
+
+test bad multiline define [[
+#define test x + \
+
+y \
+z
+]] parse fails
+
+//test macro [[
+//#define add(a, b) (a + b)
+//]] parse succeeds
+
+test variadic macro [[
+#define printf(str, ...) fprintf(stdout, str, __VA_ARGS__)
+
+]] parse succeeds

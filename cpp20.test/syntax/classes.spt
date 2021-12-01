@@ -1,0 +1,268 @@
+module syntax/classes
+
+language cpp20
+
+test class definition no attributes 1 [[
+  class Test {};
+]] parse succeeds
+
+test class definition no attributes 2 [[
+  class Test {
+  };
+]] parse succeeds
+
+test class definition single attribute [[
+  class Test {
+      int x;
+  };
+]] parse succeeds
+
+test class definition multiple attribute [[
+  class Test {
+      int x;
+      int y, z;
+  };
+]] parse succeeds
+
+test class definition attribute access modifier [[
+  class Test {
+    public:
+      int x;
+  };
+]] parse succeeds
+
+test class definition empty access modifier [[
+  class Test {
+    public:
+    private:
+      int x;
+    protected:
+  };
+]] parse succeeds
+
+test class definition attribute access modifier same [[
+  class Test {
+    public:
+      int x;
+    public :
+      int x;
+  };
+]] parse succeeds
+
+test class definition attribute multiple access modifier [[
+  class Test {
+    public:
+      int x;
+      int y, z;
+  };
+]] parse succeeds
+
+test class definition attribute access modifier different [[
+  class Test {
+      int x;
+    private:
+      int y;
+    protected:
+      int z;
+    public:
+      int i;
+  };
+]] parse succeeds
+
+test class definition single function definition 1 [[
+  class Test {
+      int testing { return 3; }
+  };
+]] parse succeeds
+
+test class definition single function definition 2 [[
+  class Test {
+      int testing {
+        return 3;
+      }
+  };
+]] parse succeeds
+
+test class definition multiple function definition [[
+  class Test {
+      int testing1 {
+        return 1;
+      }
+      int testing2 {
+        return 2;
+      }
+  };
+]] parse succeeds
+
+test class definition single function definition access modifier [[
+  class Test {
+    public:
+      int testing { return 3; }
+  };
+]] parse succeeds
+
+test class definition multiple function definition access modifier [[
+  class Test {
+    public:
+      int testing1 {
+        return 1;
+      }
+      int testing2 {
+        return 2;
+      }
+  };
+]] parse succeeds
+
+test class definition single function definition different access modifier [[
+  class Test {
+      int testing1 {
+        return 1;
+      }
+    private:
+      int testing2 {
+        return 2;
+      }
+    protected:
+      int testing3 {
+        return 3;
+      }
+    public:
+      int testing4 { return 4; }
+  };
+]] parse succeeds
+
+test class definition with public single inheritance [[
+  class Test: public Super {
+  
+  };
+]] parse succeeds
+
+test class definition with protected single inheritance [[
+  class Test: protected Super {
+  
+  };
+]] parse succeeds
+
+test class definition with private single inheritance [[
+  class Test: private Super {
+  
+  };
+]] parse succeeds
+
+test class definition with multiple inheritance 1 [[
+  class Test: public Super1, private Super2 {
+  
+  };
+]] parse succeeds
+
+test class definition with multiple inheritance 2 [[
+  class Test: protected Super1, public Super2 {
+  
+  };
+]] parse succeeds
+
+test class definition with virtual function [[
+  class Test {
+    public:
+      virtual int testing { return 3; }
+  };
+]] parse succeeds
+
+test struct definition no attributes [[
+  struct Test {};
+]] parse succeeds
+
+test struct definition empty access modifier [[
+  struct Test {
+    public:
+    private:
+      int x;
+    protected:
+  };
+]] parse succeeds
+
+test struct definition single function definition different access modifier [[
+  struct Test {
+      int testing1 {
+        return 1;
+      }
+    private:
+      int testing2 {
+        return 2;
+      }
+    protected:
+      int testing3 {
+        return 3;
+      }
+    public:
+      int testing4 { return 4; }
+  };
+]] parse succeeds
+
+test struct definition with public single inheritance [[
+  struct Test: public Super {
+  
+  };
+]] parse succeeds
+
+test struct definition with multiple inheritance [[
+  struct Test: public Super1, private Super2 {
+  
+  };
+]] parse succeeds
+
+test union definition no attributes [[
+  union Test {};
+]] parse succeeds
+
+test union definition empty access modifier [[
+  union Test {
+    public:
+    private:
+      int x;
+    protected:
+  };
+]] parse succeeds
+
+test union definition single function definition different access modifier [[
+  union Test {
+      int testing1 {
+        return 1;
+      }
+    private:
+      int testing2 {
+        return 2;
+      }
+    protected:
+      int testing3 {
+        return 3;
+      }
+    public:
+      int testing4 { return 4; }
+  };
+]] parse succeeds
+
+test union definition with public single inheritance [[
+  union Test: public Super {
+  
+  };
+]] parse succeeds
+
+test union definition with multiple inheritance [[
+  union Test: public Super1, private Super2 {
+  
+  };
+]] parse succeeds
+
+test class function call [[
+  class Test {
+  	  int test(int x) {
+  	    return x;
+  	  }
+  };
+  
+  main() {
+    Test test1;
+  	test1.test(3);
+  }
+]] parse succeeds

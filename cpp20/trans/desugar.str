@@ -1,0 +1,14 @@
+module desugar
+
+imports
+  signatures/c-syntax-sig
+
+strategies
+  desugar-all = topdown(try(desugar-amb))
+
+rules
+  desugar-amb : amb(l) -> h
+  where
+    <find-template> l => h
+
+  find-template = ?[h|l] ; (<sometd(?Template(_, _))> h < !h + <find-template> l)

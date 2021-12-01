@@ -1,0 +1,42 @@
+module statix/autotypes
+
+language cpp20
+
+test automatic type [[
+auto x = "a character pointer";
+auto y = 55;
+
+int main() {
+  char* a = x;
+  return y;
+}
+]] analysis succeeds
+
+test auto return type [[
+auto returns_lambda(int x, int y) {
+  return [=] { return x + y; };
+}
+
+int main() {
+  auto callable = returns_lambda(5, 6);
+  return callable();
+}
+]] analysis succeeds
+
+
+test auto return type with template [[
+template <class T>
+auto returns_lambda(T x, T y) {
+  return [] { return x + y; };
+}
+
+int main() {
+  auto callable = returns_lambda<int>(5, 6);
+  auto another_callable = returns_lambda<char>('x', 'y');
+  return callable();
+}
+]] analysis succeeds
+
+test several defs of the same type [[
+auto x = 5, *y = &x;
+]] analysis succeeds
