@@ -1,0 +1,41 @@
+TranslationUnit(
+  [ FunDef(
+      [Int(){TermIndex("inlinefunction/inlinefunction.cpp", 2)}]{TermIndex("inlinefunction/inlinefunction.cpp", 6)}
+    , Declarator(
+        NoPointer(){TermIndex("inlinefunction/inlinefunction.cpp", 7)}
+      , FunDeclTyped(
+          IdDecl("test"{TermIndex("inlinefunction/inlinefunction.cpp", 8)}){TermIndex("inlinefunction/inlinefunction.cpp", 9)}
+        , ParamList(
+            [ParamDecl1([Int(){TermIndex("inlinefunction/inlinefunction.cpp", 10)}]{TermIndex("inlinefunction/inlinefunction.cpp", 14)}, Declarator(NoPointer(){TermIndex("inlinefunction/inlinefunction.cpp", 15)}, IdDecl("x"{TermIndex("inlinefunction/inlinefunction.cpp", 16)}){TermIndex("inlinefunction/inlinefunction.cpp", 17)}){TermIndex("inlinefunction/inlinefunction.cpp", 18)}){TermIndex("inlinefunction/inlinefunction.cpp", 19)}]{TermIndex("inlinefunction/inlinefunction.cpp", 22)}
+          ){TermIndex("inlinefunction/inlinefunction.cpp", 23)}
+        ){TermIndex("inlinefunction/inlinefunction.cpp", 24)}
+      ){TermIndex("inlinefunction/inlinefunction.cpp", 25)}
+    , []{TermIndex("inlinefunction/inlinefunction.cpp", 27)}
+    , Compound(
+        [Return(Add(Var(NamespaceID(None(){TermIndex("inlinefunction/inlinefunction.cpp", 29)}, "x"{TermIndex("inlinefunction/inlinefunction.cpp", 30)}){TermIndex("inlinefunction/inlinefunction.cpp", 31)}){TermIndex("inlinefunction/inlinefunction.cpp", 32)}, DecInt("1"{TermIndex("inlinefunction/inlinefunction.cpp", 33)}){TermIndex("inlinefunction/inlinefunction.cpp", 34)}){TermIndex("inlinefunction/inlinefunction.cpp", 37)}){TermIndex("inlinefunction/inlinefunction.cpp", 39)}]{TermIndex("inlinefunction/inlinefunction.cpp", 43)}
+      ){TermIndex("inlinefunction/inlinefunction.cpp", 44)}
+    ){TermIndex("inlinefunction/inlinefunction.cpp", 45)}
+  , FunDef(
+      [Int(){TermIndex("inlinefunction/inlinefunction.cpp", 47)}]{TermIndex("inlinefunction/inlinefunction.cpp", 51)}
+    , Declarator(NoPointer(){TermIndex("inlinefunction/inlinefunction.cpp", 52)}, FunDeclTyped(IdDecl("main"{TermIndex("inlinefunction/inlinefunction.cpp", 53)}){TermIndex("inlinefunction/inlinefunction.cpp", 54)}, ParamList([]{TermIndex("inlinefunction/inlinefunction.cpp", 56)}){TermIndex("inlinefunction/inlinefunction.cpp", 57)}){TermIndex("inlinefunction/inlinefunction.cpp", 58)}){TermIndex("inlinefunction/inlinefunction.cpp", 59)}
+    , []{TermIndex("inlinefunction/inlinefunction.cpp", 61)}
+    , Compound(
+        [ Decl(
+            [Int(){TermIndex("inlinefunction/inlinefunction.cpp", 62)}]{TermIndex("inlinefunction/inlinefunction.cpp", 66)}
+          , [InitDecl(Declarator(NoPointer(){TermIndex("inlinefunction/inlinefunction.cpp", 67)}, IdDecl("x"{TermIndex("inlinefunction/inlinefunction.cpp", 68)}){TermIndex("inlinefunction/inlinefunction.cpp", 69)}){TermIndex("inlinefunction/inlinefunction.cpp", 70)}, DecInt("2"{TermIndex("inlinefunction/inlinefunction.cpp", 71)}){TermIndex("inlinefunction/inlinefunction.cpp", 72)}){TermIndex("inlinefunction/inlinefunction.cpp", 77)}]{TermIndex("inlinefunction/inlinefunction.cpp", 80)}
+          ){TermIndex("inlinefunction/inlinefunction.cpp", 81)}
+        , Exp(
+            Assign(
+              Var(NamespaceID(None(){TermIndex("inlinefunction/inlinefunction.cpp", 84)}, "x"{TermIndex("inlinefunction/inlinefunction.cpp", 85)}){TermIndex("inlinefunction/inlinefunction.cpp", 86)}){TermIndex("inlinefunction/inlinefunction.cpp", 87)}
+            , AssignNorm(){TermIndex("inlinefunction/inlinefunction.cpp", 88)}
+            , Add(Var(NamespaceID(None(){TermIndex("inlinefunction/inlinefunction.cpp", 90)}, "x"{TermIndex("inlinefunction/inlinefunction.cpp", 91)}){TermIndex("inlinefunction/inlinefunction.cpp", 92)}){TermIndex("inlinefunction/inlinefunction.cpp", 93)}, DecInt("1"{TermIndex("inlinefunction/inlinefunction.cpp", 94)}){TermIndex("inlinefunction/inlinefunction.cpp", 95)}){TermIndex("inlinefunction/inlinefunction.cpp", 98)}
+            ){TermIndex("inlinefunction/inlinefunction.cpp", 99)}
+          ){TermIndex("inlinefunction/inlinefunction.cpp", 100)}
+        , Exp(
+            Call(Var(NamespaceID(None(){TermIndex("inlinefunction/inlinefunction.cpp", 103)}, "test"{TermIndex("inlinefunction/inlinefunction.cpp", 104)}){TermIndex("inlinefunction/inlinefunction.cpp", 105)}){TermIndex("inlinefunction/inlinefunction.cpp", 106)}, [DecInt("2"{TermIndex("inlinefunction/inlinefunction.cpp", 107)}){TermIndex("inlinefunction/inlinefunction.cpp", 108)}]{TermIndex("inlinefunction/inlinefunction.cpp", 113)}){TermIndex("inlinefunction/inlinefunction.cpp", 114)}
+          ){TermIndex("inlinefunction/inlinefunction.cpp", 115)}
+        ]{TermIndex("inlinefunction/inlinefunction.cpp", 121)}
+      ){TermIndex("inlinefunction/inlinefunction.cpp", 122)}
+    ){TermIndex("inlinefunction/inlinefunction.cpp", 123)}
+  ]{TermIndex("inlinefunction/inlinefunction.cpp", 128)}
+){TermIndex("inlinefunction/inlinefunction.cpp", 129)}

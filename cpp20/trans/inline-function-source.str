@@ -1,0 +1,65 @@
+module inline-function-source
+// File added by Loek
+
+imports 
+  analysis
+  pp
+//  statixruntime
+//  statix/api
+
+rules  
+  inline-function-action(get-subterms-from-call, get-subterms-from-definition, get-subterms-from-argument, 
+                         check-for-definition, make-variable):
+    (selected, temp, ast, path, project-path) -> (filename, result)
+    with 
+        filename := <guarantee-extension(|"inlined.tig")> path // Filename to store new program in.
+
+      ; analysis := <stx-get-ast-analysis> selected // Get scope graph (for Ref() relation from call to definition).
+      
+      ; (function-name, args) := <get-subterms-from-call> selected // Extract the name- and the argument subterms from the function call term.
+      
+      ; definition-index := <get-ast-index-helper> (<stx-get-ast-ref(|analysis)> function-name) // Get TermIndex of function definition from the Ref() relation.
+      ; <debug> definition-index
+      ; [definition-node] := <collect(check-for-definition(|definition-index))> ast // Get function definition term from the TermIndex.
+      ; (params, body) := <get-subterms-from-definition> definition-node // Extract the parameters- and body subterms from the function definition term.
+      
+      ; new-vars := <strip-annos> (<declare-parameters(get-subterms-from-argument, make-variable)> (args, params)) // Construct new variable definitions for the arguments.
+      
+      ; <debug> new-vars
+      ; <debug> body
+      ; result := "unfinished"
+      
+//      ; new-ast := <replace-function> (selected, definition-node, body, new-vars, ast) // Replace function call node with function body.
+//      ; result := <pp-debug> new-ast
+  
+  // Creates a list of VarDec() nodes based on the arguments of the function call.
+  declare-parameters: ([], []) -> []
+  declare-parameters(get-subterms-from-argument, make-variable): ([a|args], [p|params]) -> variables
+    with
+        (name, type) := <get-subterms-from-argument> p
+      ; variables := [<make-variable> (name, type, a) | <declare-parameters> (args, params)]
+      
+   // In some languages the Ref() relation returns a list of terms instead of a single term.
+   // Therefore we need to allow for both inputs when getting the reference to the definition term.
+   get-ast-index-helper: t -> <stx--get-ast-index> t
+   get-ast-index-helper: [t|_] -> <stx--get-ast-index> t
+  
+//  // Replaces the function call with the function body,
+//  // then places the variable declarations for the arguments.
+//  replace-function: (selected, function, body, new-vars, ast) -> new-ast
+//    with
+//        call-replaced := <oncetd(replace-call(|selected, body))> ast
+//      ; new-ast := <oncetd(define-variables(|function, new-vars))> call-replaced
+//  
+//  // Replaces the function call with the function body. 
+//  replace-call(|selected, body): t -> body
+//    where
+//      <?selected> t
+//  
+//  // Places the variable declarations.
+//  define-variables(|function, new-vars): Let(decs, body) -> Let(new-decs, body)
+//    where
+//        <gt> (<occurrences(?function)> decs, 0)
+//      ; new-decs := <concat> [new-vars, decs]
+//
+//      

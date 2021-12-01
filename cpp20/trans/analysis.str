@@ -13,6 +13,7 @@ imports
   signatures/-
   desugar
   renaming
+  inlinefunction
 
 signature
 sorts NamedFile

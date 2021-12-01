@@ -1,0 +1,23 @@
+module inlinefunction
+// File added by Loek
+
+imports
+  cpp20
+  inline-function-source
+  
+rules
+  inline-function-menu-action = 
+    inline-function-action(get-subterms-from-call, get-subterms-from-definition, get-subterms-from-argument, 
+                           check-for-definition, make-variable)
+    
+  get-subterms-from-call: Exp(Call(Var(NamespaceID(None(), name)), args)) -> (name, args)
+  get-subterms-from-definition: FunDef(_, Declarator(_, FunDeclTyped(_, ParamList(params))), _, Compound(body)) -> (params, body)
+  get-subterms-from-argument: ParamDecl1(type, name) -> (name, type)
+  make-variable: (name, type, value) -> Decl(type, [InitDecl(name, value)])
+
+  // The Ref() relation points to the function name subterm instead of the whole term. 
+  // This function extracts the whole term by finding the name first.
+  check-for-definition(|termindex): t -> t
+    where
+        <?FunDef(_, Declarator(_, FunDeclTyped(IdDecl(name), _)), _, _)> t
+      ; <eq> (<stx--get-ast-index> name, termindex)
