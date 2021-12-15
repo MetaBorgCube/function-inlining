@@ -1,0 +1,14 @@
+module inline-function/general_cases
+
+language cpp20
+
+//test most basic function [[
+//int increment(int x) {
+//    return x;
+//}
+//
+//int main() {
+//    
+//    int y = increment(2);
+//}
+//]] run inline-function-menu-action(|)

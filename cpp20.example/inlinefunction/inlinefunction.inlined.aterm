@@ -1,0 +1,46 @@
+TranslationUnit(
+  [ FunDef(
+      [Int()]
+    , Declarator(
+        NoPointer()
+      , FunDeclTyped(
+          IdDecl("test")
+        , ParamList(
+            [ParamDecl1([Int()], Declarator(NoPointer(), IdDecl("x")))]
+          )
+        )
+      )
+    , []
+    , Compound(
+        [Return(Add(Var(NamespaceID(None(), "x")), DecInt("1")))]
+      )
+    )
+  , FunDef(
+      [Int()]
+    , Declarator(NoPointer(), FunDeclTyped(IdDecl("main"), ParamList([])))
+    , []
+    , Compound(
+        [ Decl(
+            [Int()]
+          , [InitDecl(Declarator(NoPointer(), IdDecl("x")), DecInt("2"))]
+          )
+        , Exp(
+            Assign(
+              Var(NamespaceID(None(), "x"))
+            , AssignNorm()
+            , Add(Var(NamespaceID(None(), "x")), DecInt("1"))
+            )
+          )
+        , Compound(
+            [ Decl(
+                [Int()]
+              , [InitDecl(Declarator(NoPointer(), IdDecl("x")), DecInt("2"))]
+              )
+            , Exp(Add(Var(NamespaceID(None(), "x")), DecInt("1")))
+            ]
+          )
+        ]
+      )
+    )
+  ]
+)

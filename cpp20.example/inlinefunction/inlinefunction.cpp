@@ -1,9 +1,9 @@
-int test(int x) {
-    return x + 1;
+int increment(int x) {
+    return x % 10;
 }
 
 int main() {
-    int x = 2;
-    x = x + 1;
-    test(2);
+    
+    int y = increment(2);
 }
+

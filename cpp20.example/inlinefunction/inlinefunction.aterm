@@ -4,7 +4,7 @@ TranslationUnit(
     , Declarator(
         NoPointer()
       , FunDeclTyped(
-          IdDecl("test")
+          IdDecl("increment")
         , ParamList(
             [ParamDecl1([Int()], Declarator(NoPointer(), IdDecl("x")))]
           )
@@ -12,7 +12,10 @@ TranslationUnit(
       )
     , []
     , Compound(
-        [Return(Add(Var(NamespaceID(None(), "x")), DecInt("1")))]
+        [ Exp(Add(Var(NamespaceID(None(), "x")), DecInt("2")))
+        , Exp(DecInt("3"))
+        , Return(Add(Var(NamespaceID(None(), "x")), DecInt("1")))
+        ]
       )
     )
   , FunDef(
@@ -22,17 +25,11 @@ TranslationUnit(
     , Compound(
         [ Decl(
             [Int()]
-          , [InitDecl(Declarator(NoPointer(), IdDecl("x")), DecInt("2"))]
-          )
-        , Exp(
-            Assign(
-              Var(NamespaceID(None(), "x"))
-            , AssignNorm()
-            , Add(Var(NamespaceID(None(), "x")), DecInt("1"))
-            )
-          )
-        , Exp(
-            Call(Var(NamespaceID(None(), "test")), [DecInt("2")])
+          , [ InitDecl(
+                Declarator(NoPointer(), IdDecl("y"))
+              , Call(Var(NamespaceID(None(), "increment")), [DecInt("2")])
+              )
+            ]
           )
         ]
       )
