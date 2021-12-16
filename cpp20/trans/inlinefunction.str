@@ -5,12 +5,16 @@ imports
   cpp20
   inline-function-source
   injections/c-syntax-injections
-  
+
 rules
-  inline-function-menu-action = 
-    inline-function-action(find-call, get-subterms-from-call, get-subterms-from-definition, get-subterms-from-argument, 
+  inline-function-test(|selected-term): ast -> <inline-function(find-call, get-subterms-from-call, get-subterms-from-definition, get-subterms-from-argument, 
                            check-for-definition, make-variable, is-void, extract-return, construct-block,
-                           is-statement)
+                           is-statement, wrap-block)> (selected-term, ast)
+  
+  inline-function-menu-action = 
+    inline-function-action(find-call, get-subterms-from-call, get-subterms-from-definition, 
+    					   get-subterms-from-argument, check-for-definition, make-variable, is-void, 
+    					   extract-return, construct-block, is-statement, wrap-block)
   
   // In cpp the call statement can be nested in constructors like Exp().
   // So we need to traverse the term t and look for a Call() constructor.
@@ -45,3 +49,6 @@ rules
       
   // This strategy should be generated in one of the injections.str files.
   is-statement = is-cpp20-BlockItem-or-inj
+
+  wrap-block: block -> Compound(block)
+  

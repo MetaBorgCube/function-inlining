@@ -2,13 +2,144 @@ module inline-function/general_cases
 
 language cpp20
 
-//test most basic function [[
-//int increment(int x) {
-//    return x;
-//}
+/*************************************************************************************************\
+Simple Statements
+\*************************************************************************************************/
+test basic expression statement [[
+int increment(int x) {
+    return x + 1;
+}
+
+int main() {
+    
+    [[increment(2)]];
+}
+]] run inline-function-test(|#1) to [[
+int increment(int x)
+{
+  return x + 1;
+}
+
+int main( )
+{
+  int x = 2;
+  x + 1;
+}
+]]
+
+test basic variable declaration [[
+int increment(int x) {
+    return x + 1;
+}
+
+int main() {
+    
+    int y = [[increment(2)]];
+}
+]] run inline-function-test(|#1) to [[
+int increment(int x)
+{
+  return x + 1;
+}
+
+int main( )
+{
+  int x = 2;
+  int y = x + 1;
+}
+]]
+
+test basic for statement [[
+int increment(int x) {
+    return x + 1;
+}
+
+int main() {
+    for (int y = 0; y < 5; y+=1)
+    	[[increment(y)]];
+}
+]] run inline-function-test(|#1) to [[
+int increment(int x)
+{
+  return x + 1;
+}
+
+int main( )
+{
+  for(int y = 0; y < 5; y += 1)
+    {
+      int x = y;
+      x + 1;
+    }
+}
+]]
+
+
+/*************************************************************************************************\
+Conditionals
+\*************************************************************************************************/
+test basic if statement [[
+int increment(int x) {
+    return x + 1;
+}
+
+int main() {
+    if ([[increment(2)]]) {
+    	1;
+    }
+}
+]] run inline-function-test(|#1) to [[
+int increment(int x)
+{
+  return x + 1;
+}
+
+int main( )
+{
+  int x = 2;
+  if (x + 1) {
+  	1;
+  }
+}
+]]
+
+test basic else if statement [[
+int increment(int x) {
+    return x + 1;
+}
+
+int main() {
+    if (0) {
+    	0;
+    } else if ([[increment(2)]]) {
+    	1;
+    }
+}
+]] run inline-function-test(|#1) to [[
+int increment(int x)
+{
+  return x + 1;
+}
+
+int main( )
+{
+  if (0)
+    {
+      0;
+    } 
+  else
+    {
+      int x = 2;
+      if(x + 1)
+        {
+          1;
+        }
+    }
+}
+]]
+
+//test basic for statement [[
 //
-//int main() {
-//    
-//    int y = increment(2);
-//}
-//]] run inline-function-menu-action(|)
+//]] run inline-function-test(|#1) to [[
+//
+//]]

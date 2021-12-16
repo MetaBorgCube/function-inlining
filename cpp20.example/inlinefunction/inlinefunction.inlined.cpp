@@ -1,10 +1,13 @@
 int increment(int x)
 {
-  return x % 10;
+  x = x + 1;
+  return x;
 }
 
 int main( )
 {
-  int x = 2;
-  int y = x % 10;
+  int x = y;
+  x = x + 1;
+  for(int y = 0; x < 5; y += 1)
+    y;
 }

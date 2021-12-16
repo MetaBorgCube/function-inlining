@@ -12,10 +12,7 @@ TranslationUnit(
       )
     , []
     , Compound(
-        [ Exp(Add(Var(NamespaceID(None(), "x")), DecInt("2")))
-        , Exp(DecInt("3"))
-        , Return(Add(Var(NamespaceID(None(), "x")), DecInt("1")))
-        ]
+        [Return(Add(Var(NamespaceID(None(), "x")), DecInt("1")))]
       )
     )
   , FunDef(
@@ -26,8 +23,13 @@ TranslationUnit(
         [ Decl(
             [Int()]
           , [ InitDecl(
-                Declarator(NoPointer(), IdDecl("y"))
-              , Call(Var(NamespaceID(None(), "increment")), [DecInt("2")])
+                Declarator(NoPointer(), ArrayDecl(IdDecl("foo")))
+              , Initializer(
+                  [ DecInt("10")
+                  , Call(Var(NamespaceID(None(), "increment")), [DecInt("2")])
+                  , DecInt("30")
+                  ]
+                )
               )
             ]
           )
