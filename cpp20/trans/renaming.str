@@ -8,4 +8,4 @@ imports
   analysis
 
 rules
-  rename-menu-action = rename-action(construct-textual-change, editor-analyze, id)
+  rename-menu-action = rename-action(construct-textual-change, editor-analyze, fail)

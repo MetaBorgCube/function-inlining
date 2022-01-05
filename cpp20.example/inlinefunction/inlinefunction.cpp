@@ -1,10 +1,10 @@
-int increment(int x) {
-    x = x + 1;
-    return x;
+int increment(int y) {
+    int z = 5;
+    z;
+    return y + 1;
 }
 
-int main() {
-    for (int y = 0; increment(y) < 5; y+=1)
-    	y;
+int main() {	
+    int a;
+    a = increment(2);
 }
-

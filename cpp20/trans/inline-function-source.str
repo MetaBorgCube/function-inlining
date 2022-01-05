@@ -2,70 +2,115 @@ module inline-function-source
 // File added by Loek
 
 imports 
-  analysis
-  pp
-//  statixruntime
-//  statix/api
+  statixruntime
+  statix/api
+  statix/runtime/renaming
 
 rules  
   inline-function-action(find-call, get-subterms-from-call, get-subterms-from-definition, 
-  						 get-subterms-from-argument, check-for-definition, make-variable, is-void, 
-  						 extract-return, construct-block, is-statement, wrap-block):
+  						 get-subterms-from-argument, get-term-from-name, make-variable, is-void, 
+  						 extract-return, construct-block, is-statement, wrap-block, editor-analyze, pp-debug):
     (t, _, ast, path, _) -> (filename, result)
     with 
         filename := <guarantee-extension(|"inlined.cpp")> path // Filename to store new program in.
       ; new-ast := <inline-function(find-call, get-subterms-from-call, get-subterms-from-definition, get-subterms-from-argument, 
-                         check-for-definition, make-variable, is-void, extract-return, construct-block, is-statement, wrap-block)> (t, ast)
-      ; result := <pp-debug> <strip-annos> new-ast
+                         get-term-from-name, make-variable, is-void, extract-return, construct-block, is-statement, wrap-block,
+                         editor-analyze, pp-debug)> (t, ast, path)
+      ; result := <pp-debug> new-ast
 
   inline-function(find-call, get-subterms-from-call, get-subterms-from-definition, get-subterms-from-argument, 
-                         check-for-definition, make-variable, is-void, extract-return, construct-block, is-statement, wrap-block):
-    (t, ast) -> new-ast
+                         get-term-from-name, make-variable, is-void, extract-return, construct-block, 
+                         is-statement, wrap-block, editor-analyze, pp-debug):
+    (t, ast, path) -> ast-reannotated
     with
+      // In some languages the call term can be nested in the selected term. Extract it. 
 	    selected := <find-call> t
 
-      ; analysis := <stx-get-ast-analysis> selected // Get scope graph (for Ref() relation from call to definition).
+      // Get the scope graph.
+      ; analysis := <stx-get-ast-analysis> selected 
       
-      ; (function-name, args) := <get-subterms-from-call> selected // Extract the name- and the argument subterms from the function call term.
+      // Extract the name- and the argument subterms from the function call term.
+      ; (function-name, args) := <get-subterms-from-call> selected
       
-      ; definition-index := <get-ast-index-helper> (<stx-get-ast-ref(|analysis)> function-name) // Get TermIndex of function definition from the Ref() relation.
-      ; [definition-node] := <collect(check-for-definition(|definition-index))> ast // Get function definition term from the TermIndex.
-      ; (params, type, body) := <get-subterms-from-definition> definition-node // Extract the required subterms from the function definition term.
-            
-      ; (new-body, last-statement) := <split-init-last> body // The last statement should replace the call expression.
+      // Find and extract the function definition.
+      ; definition-name := <get-ref-helper> (<stx-get-ast-ref(|analysis)> function-name) // Get definition name term from Ref().
+      ; definition-term := <collect-one(get-term-from-name(|definition-name))> ast // Get encapsulating definition term.
+      ; (params, type, body) := <get-subterms-from-definition> definition-term // Extract required subterms.
+      
+      // Set up reference annotations.
+      ; refs := <new-hashtable> // Maps definition terms to an annotation they are meant to receive. Can be updated dynamically.
+      ; body-annotated := <topdown(try(annotate-definition(|refs)))> (<topdown(try(get-ref-relation(|analysis, params, refs)))> body)
+      ; new-vars := <declare-parameters(get-subterms-from-argument, make-variable|refs)> (args, params) // Define variables for arguments.
+      ; ast-annotated := <topdown(try(annotate-definition(|refs)))> ast
+      ; <hashtable-destroy> refs
+
+      
+      // Construct the new body (removing the return statements and a few other changes).
+      ; (new-body, last-statement) := <split-init-last> body-annotated // The last statement should replace the call expression.
       ; if <is-void> type // In case the function doesn't return a value, the last statement isn't necessarily a return statement.
           then return-expression := <extract-return <+ id> last-statement
           else return-expression := <extract-return> last-statement
           end
       ; <lt> (<occurrences(extract-return)> new-body, 1) // Ensure that there are no return statements left.
       
-      ; new-vars := <declare-parameters(get-subterms-from-argument, make-variable)> (args, params) // Construct new variable definitions for the arguments.
       
       ; new-block := <construct-block> (new-vars, new-body)
       
-      ; call-stmt := <find-surrounding-stmt(is-statement|ast, selected)> ast
+      ; call-stmt := <find-surrounding-stmt(is-statement|ast-annotated, selected)> ast-annotated
       
-      ; if <oncetd(?[_|_]; one(?call-stmt))> ast // Checks if the statement that contains the call is part of a list of statements
+      // Insert the code block.
+      ; if <oncetd(?[_|_]; one(?call-stmt))> ast-annotated // Checks if the statement that contains the call is part of a list of statements
           // If the statement containing the call is part of a list of statements, simply insert the code block above it.
-          then new-ast := <oncetd(find-and-replace(|call-stmt, selected, return-expression, new-block))> ast
+          then ast-inlined := <oncetd(find-and-replace(|call-stmt, selected, return-expression, new-block))> ast-annotated
           // If the statement containing the call is NOT part of a list of statements, replace it with a list of statements.
-          else new-ast := <oncetd(find-and-replace-single-statement(construct-block, wrap-block|call-stmt, selected, return-expression, new-block))> ast
+          else ast-inlined := <oncetd(find-and-replace-single-statement(construct-block, wrap-block|call-stmt, selected, return-expression, new-block))> ast-annotated
           end
-          
-
-
-  
-  // Creates a list of VarDec() nodes based on the arguments of the function call.
-  declare-parameters(get-subterms-from-argument, make-variable): ([], []) -> []
-  declare-parameters(get-subterms-from-argument, make-variable): ([a|args], [p|params]) -> variables
-    with
-        (name, type) := <get-subterms-from-argument> p
-      ; variables := [<make-variable> (name, type, a) | <declare-parameters(get-subterms-from-argument, make-variable)> (args, params)]
       
+      // Re-analyze the AST.      
+      ; ([(_, ast-reannotated)], new-analysis) := <rerun-analysis-single(editor-analyze)> [(path, (), ast-inlined)]
+      
+      // Check if reference annotations have been preserved.
+      ; <topdown(check-ref-preservation(|new-analysis))> ast-reannotated
+  
+    
+  
   // In some languages the Ref() relation returns a list of terms instead of a single term.
   // If this is the case we assume that the first entry in the list is the correct definition.
-  get-ast-index-helper: t -> <stx--get-ast-index> t
-  get-ast-index-helper: [t|_] -> <stx--get-ast-index> t
+  get-ref-helper: [t|_] -> t
+  get-ref-helper: t -> t
+  
+  get-ref-relation(|analysis, params, refs): t -> <add-annotation> (t, annotation)
+    where
+        definition := <get-ref-helper> (<stx-get-ast-ref(|analysis)> t)
+      ; if not(annotation := <hashtable-get(|definition)> refs)
+          then annotation := <newname> "ref"
+             ; <hashtable-put(|definition, annotation)> refs
+          end
+  
+  annotate-definition(|refs): t -> <add-annotation> (t, annotation)
+    where
+        annotation := <hashtable-get(|t)> refs
+      ; <hashtable-remove(|t)> refs
+  
+  add-annotation: (t, annotation) -> <set-annotations> (t, <concat> [<get-annotations> t, [annotation]])
+  
+  check-ref-preservation(|analysis): t -> t
+    where
+      if annotation := <fetch-elem(string-starts-with(|"ref"))> (<get-annotations> t)
+       ; definition := <get-ref-helper> (<stx-get-ast-ref(|analysis)> t)
+        then <elem> (annotation, <get-annotations> definition)
+        end
+  
+  
+  // Creates a list of definition terms for the arguments of the function call.
+  declare-parameters(get-subterms-from-argument, make-variable|refs): ([], []) -> []
+  declare-parameters(get-subterms-from-argument, make-variable|refs): ([a|args], [p|params]) -> variables
+    with
+        (n, type) := <get-subterms-from-argument> p
+      ; name := <oncetd(annotate-definition(|refs)) <+ id> n
+      ; variables := [<make-variable> (name, type, a) | <declare-parameters(get-subterms-from-argument, make-variable|refs)> (args, params)]
+
+
 
   find-surrounding-stmt(is-statement|call-stmt, selected): selected -> call-stmt
   

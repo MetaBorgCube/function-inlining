@@ -1,7 +1,6 @@
 module inline-function/general_cases
 
 language cpp20
-
 /*************************************************************************************************\
 Simple Statements
 \*************************************************************************************************/
@@ -24,6 +23,96 @@ int main( )
 {
   int x = 2;
   x + 1;
+}
+]]
+
+test one statement two function calls 1 [[
+int increment(int x) {
+    return x + 1;
+}
+
+int main() {
+    
+    increment(2) + [[increment(2)]];
+}
+]] run inline-function-test(|#1) to [[
+int increment(int x)
+{
+  return x + 1;
+}
+
+int main( )
+{
+  int x = 2;
+  increment(2) + (x + 1);
+}
+]]
+
+test one statement two function calls 2 [[
+int increment(int x) {
+    return x + 1;
+}
+
+int main() {
+    
+    [[increment(2)]] + increment(2);
+}
+]] run inline-function-test(|#1) to [[
+int increment(int x)
+{
+  return x + 1;
+}
+
+int main( )
+{
+  int x = 2;
+  x + 1 + increment(2);
+}
+]]
+
+test two statements two function calls 1 [[
+int increment(int x) {
+    return x + 1;
+}
+
+int main() {
+    increment(2);
+    [[increment(2)]];
+}
+]] run inline-function-test(|#1) to [[
+int increment(int x)
+{
+  return x + 1;
+}
+
+int main( )
+{
+  increment(2);
+  int x = 2;
+  x + 1;
+}
+]]
+
+test two statements two function calls 2 [[
+int increment(int x) {
+    return x + 1;
+}
+
+int main() {
+    [[increment(2)]];
+    increment(2);
+}
+]] run inline-function-test(|#1) to [[
+int increment(int x)
+{
+  return x + 1;
+}
+
+int main( )
+{
+  int x = 2;
+  x + 1;
+  increment(2);
 }
 ]]
 

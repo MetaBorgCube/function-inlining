@@ -2,19 +2,21 @@ module inlinefunction
 // File added by Loek
 
 imports
+  analysis
+  pp
   cpp20
   inline-function-source
   injections/c-syntax-injections
 
 rules
   inline-function-test(|selected-term): ast -> <inline-function(find-call, get-subterms-from-call, get-subterms-from-definition, get-subterms-from-argument, 
-                           check-for-definition, make-variable, is-void, extract-return, construct-block,
-                           is-statement, wrap-block)> (selected-term, ast)
+                           get-term-from-name, make-variable, is-void, extract-return, construct-block,
+                           is-statement, wrap-block, editor-analyze, pp-debug)> (selected-term, ast)
   
   inline-function-menu-action = 
     inline-function-action(find-call, get-subterms-from-call, get-subterms-from-definition, 
-    					   get-subterms-from-argument, check-for-definition, make-variable, is-void, 
-    					   extract-return, construct-block, is-statement, wrap-block)
+    					   get-subterms-from-argument, get-term-from-name, make-variable, is-void, 
+    					   extract-return, construct-block, is-statement, wrap-block, editor-analyze, pp-debug)
   
   // In cpp the call statement can be nested in constructors like Exp().
   // So we need to traverse the term t and look for a Call() constructor.
@@ -22,8 +24,10 @@ rules
   
   // We expect the Ref() relation to be on the name string subterm of both the call- and definition terms. 
   // Therefore the string term holding the name has to be returned.
-  
-  get-subterms-from-call: Call(Var(NamespaceID(None(), name)), args) -> (name, args) 
+  // The arguments are required too.
+  // If the function is a method we need to do something extra, so that has to be distinguished too.
+  get-subterms-from-call: Call(Var(NamespaceID(None(), name)), args) -> (name, args)
+  get-subterms-from-call: Call(Var(NamespaceID(namespace, name)), args) -> (name, args, namespace)
   
   get-subterms-from-definition: FunDef(type, Declarator(_, FunDeclTyped(_, ParamList(params))), _, Compound(body)) -> (params, type, body)
   get-subterms-from-argument: ParamDecl1(type, name) -> (name, type)
@@ -41,11 +45,10 @@ rules
   is-void = ?[Void()]
 
   // The Ref() relation points to the function name subterm instead of the whole term. 
-  // This function extracts the whole term by finding the name first.
-  check-for-definition(|termindex): t -> t
+  // This function extracts the whole term by matching on the name.
+  get-term-from-name(|name): t -> t
     where
         <?FunDef(_, Declarator(_, FunDeclTyped(IdDecl(name), _)), _, _)> t
-      ; <eq> (<stx--get-ast-index> name, termindex)
       
   // This strategy should be generated in one of the injections.str files.
   is-statement = is-cpp20-BlockItem-or-inj
