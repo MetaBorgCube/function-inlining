@@ -1,0 +1,14 @@
+module Main
+
+imports
+
+  Syntax
+  Analysis
+  Refactoring
+
+language
+
+  extensions : cpp20, cpp, cc, cxx, C, h, hpp, hh, H, hxx
+
+  provider : target/metaborg/stratego.ctree
+  provider : target/metaborg/stratego.jar

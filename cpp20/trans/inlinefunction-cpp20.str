@@ -1,0 +1,54 @@
+module inlinefunction
+// File added by Loek
+
+imports
+  cpp20
+  inline-function-source
+  injections/c-syntax-injections
+
+rules
+  inline-function-test(|selected-term): ast -> <inline-function(find-call, get-subterms-from-call, get-subterms-from-definition, get-subterms-from-argument, 
+                           check-for-definition, make-variable, is-void, extract-return, construct-block,
+                           is-statement, wrap-block)> (selected-term, ast)
+  
+  inline-function-menu-action = 
+    inline-function-action(find-call, get-subterms-from-call, get-subterms-from-definition, 
+    					   get-subterms-from-argument, check-for-definition, make-variable, is-void, 
+    					   extract-return, construct-block, is-statement, wrap-block)
+  
+  // In cpp the call statement can be nested in constructors like Exp().
+  // So we need to traverse the term t and look for a Call() constructor.
+  find-call: t -> <index> (1, <collect(?Call(_, _))> t)
+  
+  // We expect the Ref() relation to be on the name string subterm of both the call- and definition terms. 
+  // Therefore the string term holding the name has to be returned.
+  
+  get-subterms-from-call: Call(Var(NamespaceID(None(), name)), args) -> (name, args) 
+  
+  get-subterms-from-definition: FunDef(type, Declarator(_, FunDeclTyped(_, ParamList(params))), _, Compound(body)) -> (params, type, body)
+  get-subterms-from-argument: ParamDecl1(type, name) -> (name, type)
+  
+  // Define variables for the arguments.
+  
+  make-variable: (name, type, value) -> Decl(type, [InitDecl(name, value)])
+  
+  extract-return: Return(t) -> t
+  
+  // Combine the variable definitions for the arguments and the function body statements.
+  construct-block: (new-vars, new-block) -> <concat> [new-vars, new-block]
+  
+  // Succeeds if the type is void, fails otherwise
+  is-void = ?[Void()]
+
+  // The Ref() relation points to the function name subterm instead of the whole term. 
+  // This function extracts the whole term by finding the name first.
+  check-for-definition(|termindex): t -> t
+    where
+        <?FunDef(_, Declarator(_, FunDeclTyped(IdDecl(name), _)), _, _)> t
+      ; <eq> (<stx--get-ast-index> name, termindex)
+      
+  // This strategy should be generated in one of the injections.str files.
+  is-statement = is-cpp20-BlockItem-or-inj
+
+  wrap-block: block -> Compound(block)
+  

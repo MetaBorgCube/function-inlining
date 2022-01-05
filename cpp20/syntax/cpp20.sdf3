@@ -1,0 +1,27 @@
+module cpp20
+
+imports
+  c-syntax
+  cpp-templates
+  cpp-classes
+  namespaces
+
+context-free start-symbols Start
+
+context-free sorts
+
+  Start TranslationUnit
+
+context-free syntax
+  
+  Start = TranslationUnit
+  
+  TranslationUnit.TranslationUnit = <
+    <{ExternalDeclaration "\n\n"}+>
+  >
+   
+  ExternalDeclaration = FunctionDefinition 
+  ExternalDeclaration = Declaration
+  ExternalDeclaration = TemplateDeclaration
+  ExternalDeclaration = NamespaceDeclaration
+  ExternalDeclaration = UsingDeclaration

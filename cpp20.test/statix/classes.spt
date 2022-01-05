@@ -1,0 +1,1017 @@
+module statix/classes
+
+language cpp20
+
+test class definition [[
+  class Test {};
+]] analysis succeeds
+
+test class definition single attribute [[
+  class Test {
+      int x;
+  };
+]] analysis succeeds
+
+test class definition multiple attribute [[
+  class Test {
+      int x;
+      int y, z;
+  };
+]] analysis succeeds
+
+test class definition attribute access modifier [[
+  class Test {
+    public:
+      int x;
+  };
+]] analysis succeeds
+
+test class definition empty access modifier [[
+  class Test {
+    public:
+    private:
+      int x;
+    protected:
+  };
+]] analysis succeeds
+
+test class definition multiple function definition [[
+  class Test {
+      int testing1() {
+        return 1;
+      }
+      int testing2() {
+        return 2;
+      }
+  };
+]] analysis succeeds
+
+test class definition single function definition access modifier [[
+  class Test {
+    public:
+      int testing() { return 3; }
+  };
+]] analysis succeeds
+
+test class definition multiple function definition access modifier [[
+  class Test {
+    public:
+      int testing1() {
+        return 1;
+      }
+      int testing2() {
+        return 2;
+      }
+  };
+]] analysis succeeds
+
+test class definition with multiple inheritance [[
+  class Super1{};
+  class Super2{};
+
+  class Test: public Super1, private Super2 {
+  
+  };
+]] analysis succeeds
+
+test class declaration type [[
+  class Test {
+    int test(int x) {
+      return x; 
+    }
+  };
+    
+  int main() {
+    Test t;
+  }
+]] analysis succeeds
+
+test class function member [[
+  class Test {
+    public:
+    int test(int x) {
+      return x; 
+    }
+  };
+    
+  int main() {
+    Test t;
+    t.test(3);
+  }
+]] analysis succeeds
+
+test class attribute member [[
+  class Test {
+    public:
+    int x;
+  };
+    
+  int main() {
+    Test t;
+    t.x;
+  }
+]] analysis succeeds
+
+
+test class function member not visible 1 [[
+  class Test {
+    protected:
+    int test(int x) {
+      return x; 
+    }
+  };
+    
+  int main() {
+    Test t;
+    t.test(3);
+  }
+]] analysis fails
+
+test class attribute member not visible 1 [[
+  class Test {
+    protected:
+    int x;
+  }
+    
+  int main() {
+    Test t;
+    t.x;
+  }
+]] analysis fails
+
+test class function member not visible 2 [[
+  class Test {
+    private:
+    int test(int x) {
+      return x; 
+    }
+  };
+    
+  int main() {
+    Test t;
+    t.test(3);
+  }
+]] analysis fails
+
+test class attribute member not visible 2 [[
+  class Test {
+    private:
+    int x;
+  };
+    
+  int main() {
+    Test t;
+    t.x;
+  }
+]] analysis fails
+
+test class function member static [[
+  class Test {
+    public:
+    static int test(int x) {
+      return x; 
+    }
+  };
+    
+  int main() {
+    int y = Test::test(3);
+  }
+]] analysis succeeds
+
+test class attribute member static [[
+  class Test {
+    public:
+    static int x;
+  };
+    
+  int main() {
+    int y = Test::x;
+  }
+]] analysis succeeds
+
+
+test class function member not visible 1 static [[
+  class Test {
+    protected:
+    static int test(int x) {
+      return x; 
+    }
+  };
+    
+  int main() {
+    int y = Test::test(3);
+  }
+]] analysis fails
+
+test class attribute member not visible 1 static [[
+  class Test {
+    protected:
+    static int x;
+  }
+    
+  int main() {
+    int y = Test::x;
+  }
+]] analysis fails
+
+test class function member not visible 2 static [[
+  class Test {
+    private:
+    static int test(int x) {
+      return x; 
+    }
+  };
+    
+  int main() {
+    int y = Test::test(3);
+  }
+]] analysis fails
+
+test class attribute member not visible 2 static [[
+  class Test {
+    private:
+    static int x;
+  };
+    
+  int main() {
+    int y = Test::x;
+  }
+]] analysis fails
+
+test class public inheritence public method [[
+  class Test1 {
+    public:
+    int test(int x) {
+      return x; 
+    }
+  };
+  
+  class Test2 : public Test1 {};
+  
+  int main() {
+    Test2 t;
+    t.test(3);
+  }
+]] analysis succeeds
+
+test class public inheritence protected method [[
+  class Test1 {
+    protected:
+    int test(int x) {
+      return x; 
+    }
+  };
+  
+  class Test2 : public Test1 {};
+  
+  int main() {
+    Test2 t;
+    t.test(3);
+  }
+]] analysis fails
+
+test class public inheritence private method [[
+  class Test1 {
+    private:
+    int test(int x) {
+      return x; 
+    }
+  };
+  
+  class Test2 : public Test1 {};
+  
+  int main() {
+    Test2 t;
+    t.test(3);
+  }
+]] analysis fails
+
+test class protected inheritence public method [[
+  class Test1 {
+    public:
+    int test(int x) {
+      return x; 
+    }
+  };
+  
+  class Test2 : protected Test1 {};
+  
+  int main() {
+    Test2 t;
+    t.test(3);
+  }
+]] analysis fails
+
+test class protected inheritence protected method [[
+  class Test1 {
+    protected:
+    int test(int x) {
+      return x; 
+    }
+  };
+  
+  class Test2 : protected Test1 {};
+  
+  int main() {
+    Test2 t;
+    t.test(3);
+  }
+]] analysis fails
+
+test class protected inheritence private method [[
+  class Test1 {
+    private:
+    int test(int x) {
+      return x; 
+    }
+  };
+  
+  class Test2 : protected Test1 {};
+  
+  int main() {
+    Test2 t;
+    t.test(3);
+  }
+]] analysis fails
+
+test class private inheritence public method [[
+  class Test1 {
+    public:
+    int test(int x) {
+      return x; 
+    }
+  };
+  
+  class Test2 : private Test1 {};
+  
+  int main() {
+    Test2 t;
+    t.test(3);
+  }
+]] analysis fails
+
+test class private inheritence protected method [[
+  class Test1 {
+    protected:
+    int test(int x) {
+      return x; 
+    }
+  };
+  
+  class Test2 : private Test1 {};
+  
+  int main() {
+    Test2 t;
+    t.test(3);
+  }
+]] analysis fails
+
+test class private inheritence private method [[
+  class Test1 {
+    private:
+    int test(int x) {
+      return x; 
+    }
+  };
+  
+  class Test2 : private Test1 {};
+  
+  int main() {
+    Test2 t;
+    t.test(3);
+  }
+]] analysis fails
+
+test class public inheritence public method in subclass [[
+  class Test1 {
+    public:
+    int test1(int x) {
+      return x; 
+    }
+  };
+  
+  class Test2 : public Test1 {
+    public:
+    int test2(int x) {
+      return test1(x);
+    }
+  };
+  
+  int main() {
+    Test2 t;
+    t.test2(3);
+  }
+]] analysis succeeds
+
+test class public inheritence protected method in subclass [[
+  class Test1 {
+    protected:
+    int test1(int x) {
+      return x; 
+    }
+  };
+  
+  class Test2 : public Test1 {
+    public:
+    int test2(int x) {
+      return test1(x);
+    }
+  };
+  
+  int main() {
+    Test2 t;
+    t.test2(3);
+  }
+]] analysis succeeds
+
+test class public inheritence private method in subclass [[
+  class Test1 {
+    private:
+    int test1(int x) {
+      return x; 
+    }
+  };
+  
+  class Test2 : public Test1 {
+    public:
+    int test2(int x) {
+      return test1(x);
+    }
+  };
+  
+  int main() {
+    Test2 t;
+    t.test2(3);
+  }
+]] analysis fails
+
+test class protected inheritence public method in subclass [[
+  class Test1 {
+    public:
+    int test1(int x) {
+      return x; 
+    }
+  };
+  
+  class Test2 : protected Test1 {
+    public:
+    int test2(int x) {
+      return test1(x);
+    }
+  };
+  
+  int main() {
+    Test2 t;
+    t.test2(3);
+  }
+]] analysis succeeds
+
+test class protected inheritence protected method in subclass [[
+  class Test1 {
+    protected:
+    int test1(int x) {
+      return x; 
+    }
+  };
+  
+  class Test2 : protected Test1 {
+    public:
+    int test2(int x) {
+      return test1(x);
+    }
+  };
+  
+  int main() {
+    Test2 t;
+    t.test2(3);
+  }
+]] analysis succeeds
+
+test class protected inheritence private method in subclass [[
+  class Test1 {
+    private:
+    int test1(int x) {
+      return x; 
+    }
+  };
+  
+  class Test2 : protected Test1 {
+    public:
+    int test2(int x) {
+      return test1(x);
+    }
+  };
+  
+  int main() {
+    Test2 t;
+    t.test2(3);
+  }
+]] analysis fails
+
+test class private inheritence public method in subclass [[
+  class Test1 {
+    public:
+    int test1(int x) {
+      return x; 
+    }
+  };
+  
+  class Test2 : private Test1 {
+    public:
+    int test2(int x) {
+      return test1(x);
+    }
+  };
+  
+  int main() {
+    Test2 t;
+    t.test2(3);
+  }
+]] analysis succeeds
+
+test class private inheritence protected method in subclass [[
+  class Test1 {
+    protected:
+    int test1(int x) {
+      return x; 
+    }
+  };
+  
+  class Test2 : private Test1 {
+    public:
+    int test2(int x) {
+      return test1(x);
+    }
+  };
+  
+  int main() {
+    Test2 t;
+    t.test2(3);
+  }
+]] analysis succeeds
+
+test class private inheritence private method in subclass [[
+  class Test1 {
+    private:
+    int test1(int x) {
+      return x; 
+    }
+  };
+  
+  class Test2 : private Test1 {
+    public:
+    int test2(int x) {
+      return test1(x);
+    }
+  };
+  
+  int main() {
+    Test2 t;
+    t.test2(3);
+  }
+]] analysis fails
+
+test class public inheritence public method static [[
+  class Test1 {
+    public:
+    static int test(int x) {
+      return x; 
+    }
+  };
+  
+  class Test2 : public Test1 {};
+  
+  int main() {
+    int y = Test2::test(3);
+  }
+]] analysis succeeds
+
+test class public inheritence protected method static [[
+  class Test1 {
+    protected:
+    static int test(int x) {
+      return x; 
+    }
+  };
+  
+  class Test2 : public Test1 {};
+  
+  int main() {
+    int y = Test2::test(3);
+  }
+]] analysis fails
+
+test class public inheritence private method static [[
+  class Test1 {
+    private:
+    static int test(int x) {
+      return x; 
+    }
+  };
+  
+  class Test2 : public Test1 {};
+  
+  int main() {
+    int y = Test2::test(3);
+  }
+]] analysis fails
+
+test class protected inheritence public method static [[
+  class Test1 {
+    public:
+    static int test(int x) {
+      return x; 
+    }
+  };
+  
+  class Test2 : protected Test1 {};
+  
+  int main() {
+    int y = Test2::test(3);
+  }
+]] analysis fails
+
+test class protected inheritence protected method static [[
+  class Test1 {
+    protected:
+    static int test(int x) {
+      return x; 
+    }
+  };
+  
+  class Test2 : protected Test1 {};
+  
+  int main() {
+    int y = Test2::test(3);
+  }
+]] analysis fails
+
+test class protected inheritence private method static [[
+  class Test1 {
+    private:
+    static int test(int x) {
+      return x; 
+    }
+  };
+  
+  class Test2 : protected Test1 {};
+  
+  int main() {
+    int y = Test2::test(3);
+  }
+]] analysis fails
+
+test class private inheritence public method static [[
+  class Test1 {
+    public:
+    static int test(int x) {
+      return x; 
+    }
+  };
+  
+  class Test2 : private Test1 {};
+  
+  int main() {
+    int y = Test2::test(3);
+  }
+]] analysis fails
+
+test class private inheritence protected method static [[
+  class Test1 {
+    protected:
+    static int test(int x) {
+      return x; 
+    }
+  };
+  
+  class Test2 : private Test1 {};
+  
+  int main() {
+    int y = Test2::test(3);
+  }
+]] analysis fails
+
+test class private inheritence private method static [[
+  class Test1 {
+    private:
+    static int test(int x) {
+      return x; 
+    }
+  };
+  
+  class Test2 : private Test1 {};
+  
+  int main() {
+    int y = Test2::test(3);
+  }
+]] analysis fails
+
+test class public inheritence public method in subclass static [[
+  class Test1 {
+    public:
+    static int test1(int x) {
+      return x; 
+    }
+  };
+  
+  class Test2 : public Test1 {
+    public:
+    static int test2(int x) {
+      return test1(x);
+    }
+  };
+  
+  int main() {
+    int y = Test1::test1(3);
+    int z = Test2::test2(3);
+  }
+]] analysis succeeds
+
+test class public inheritence protected method in subclass static [[
+  class Test1 {
+    protected:
+    static int test1(int x) {
+      return x; 
+    }
+  };
+  
+  class Test2 : public Test1 {
+    public:
+    static int test2(int x) {
+      return test1(x);
+    }
+  };
+  
+  int main() {
+    int z = Test2::test2(3);
+  }
+]] analysis succeeds
+
+test class public inheritence private method in subclass static [[
+  class Test1 {
+    private:
+    static int test1(int x) {
+      return x; 
+    }
+  };
+  
+  class Test2 : public Test1 {
+    public:
+    static int test2(int x) {
+      return test1(x);
+    }
+  };
+  
+  int main() {
+    int z = Test2::test2(3);
+  }
+]] analysis fails
+
+test class protected inheritence public method in subclass static [[
+  class Test1 {
+    public:
+    static int test1(int x) {
+      return x; 
+    }
+  };
+  
+  class Test2 : protected Test1 {
+    public:
+    static int test2(int x) {
+      return test1(x);
+    }
+  };
+  
+  int main() {
+    int y = Test1::test1(3);
+    int z = Test2::test2(3);
+  }
+]] analysis succeeds
+
+test class protected inheritence protected method in subclass static [[
+  class Test1 {
+    protected:
+    static int test1(int x) {
+      return x; 
+    }
+  };
+  
+  class Test2 : protected Test1 {
+    public:
+    static int test2(int x) {
+      return test1(x);
+    }
+  };
+  
+  int main() {
+    int z = Test2::test2(3);
+  }
+]] analysis succeeds
+
+test class protected inheritence private method in subclass static [[
+  class Test1 {
+    private:
+    static int test1(int x) {
+      return x; 
+    }
+  };
+  
+  class Test2 : protected Test1 {
+    public:
+    static int test2(int x) {
+      return test1(x);
+    }
+  };
+  
+  int main() {
+    int z = Test2::test2(3);
+  }
+]] analysis fails
+
+test class private inheritence public method in subclass static [[
+  class Test1 {
+    public:
+    static int test1(int x) {
+      return x; 
+    }
+  };
+  
+  class Test2 : private Test1 {
+    public:
+    static int test2(int x) {
+      return test1(x);
+    }
+  };
+  
+  int main() {
+    int y = Test1::test1(3);
+    int z = Test2::test2(3);
+  }
+]] analysis succeeds
+
+test class private inheritence protected method in subclass static [[
+  class Test1 {
+    protected:
+    static int test1(int x) {
+      return x; 
+    }
+  };
+  
+  class Test2 : private Test1 {
+    public:
+    static int test2(int x) {
+      return test1(x);
+    }
+  };
+  
+  int main() {
+    int z = Test2::test2(3);
+  }
+]] analysis succeeds
+
+test class private inheritence private method in subclass static [[
+  class Test1 {
+    private:
+    static int test1(int x) {
+      return x; 
+    }
+  };
+  
+  class Test2 : private Test1 {
+    public:
+    static int test2(int x) {
+      return test1(x);
+    }
+  };
+  
+  int main() {
+    int z = Test2::test2(3);
+  }
+]] analysis fails
+
+//test class constructor empty [[
+//  class Test {
+//  };
+//  
+//  int main() {
+//    Test test = Test();
+//  }
+//]] analysis succeeds
+//
+//test class constructor empty public defined [[
+//  class Test {
+//    public:
+//    Test(){}
+//  };
+//  
+//  int main() {
+//    Test test = Test();
+//  }
+//]] analysis succeeds
+
+test class constructor empty different defined [[
+  class Test {
+    public:
+    Test(int x) {
+    }
+  };
+  
+  int main() {
+    Test test = Test();
+  }
+]] analysis fails
+
+test class constructor empty protected [[
+  class Test {
+    protected:
+    Test() {
+    }
+  };
+  
+  int main() {
+    Test test = Test();
+  }
+]] analysis fails
+
+//test class constructor non empty [[
+//  class Test {
+//    public:
+//    Test(int x) {
+//    }
+//  };
+//  
+//  int main() {
+//    Test test = Test(3);
+//  }
+//]] analysis succeeds
+
+test class constructor non empty wrong number of arguments [[
+  class Test {
+    public:
+    Test(int x) {
+    }
+  };
+  
+  int main() {
+    Test test = Test(3, 5);
+  }
+]] analysis fails
+
+test class constructor non empty wrong type of arguments [[
+  class Test {
+    public:
+    Test(int x) {
+    }
+  };
+  
+  int main() {
+    Test test = Test("test");
+  }
+]] analysis fails
+
+//test class constructor multiple [[
+//  class Test {
+//    public:
+//    Test(int x) {}
+//    Test(int x, int y) {}
+//  };
+//  
+//  int main() {
+//    Test test = Test(3);
+//    test = Test(3, 2);
+//  }
+//]] analysis succeeds
+
+test class injected class name [[
+  class Foo
+  {
+    public:
+      Foo foo;
+  };
+]] analysis succeeds
+
+test class this dereference [[
+  class Foo
+  {
+    private:
+    int y;
+    public:
+    int test(int x) {
+      return this->y;
+    }
+  };
+]] analysis succeeds
+
+test class this dereference definition outside class [[
+  class Foo
+  {
+    private:
+    int y;
+    public:
+    int test(int);
+  };
+  
+  int Foo::test(int x) {
+      return this->y;
+  }
+]] analysis succeeds

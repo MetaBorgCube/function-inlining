@@ -1,0 +1,101 @@
+module inline-function-source
+// File added by Loek
+
+imports 
+  analysis
+  pp
+//  statixruntime
+//  statix/api
+
+rules  
+  inline-function-action(find-call, get-subterms-from-call, get-subterms-from-definition, 
+  						 get-subterms-from-argument, check-for-definition, make-variable, is-void, 
+  						 extract-return, construct-block, is-statement, wrap-block):
+    (t, _, ast, path, _) -> (filename, result)
+    with 
+        filename := <guarantee-extension(|"inlined.cpp")> path // Filename to store new program in.
+      ; new-ast := <inline-function(find-call, get-subterms-from-call, get-subterms-from-definition, get-subterms-from-argument, 
+                         check-for-definition, make-variable, is-void, extract-return, construct-block, is-statement, wrap-block)> (t, ast)
+      ; result := <pp-debug> <strip-annos> new-ast
+
+  inline-function(find-call, get-subterms-from-call, get-subterms-from-definition, get-subterms-from-argument, 
+                         check-for-definition, make-variable, is-void, extract-return, construct-block, is-statement, wrap-block):
+    (t, ast) -> new-ast
+    with
+	    selected := <find-call> t
+
+      ; analysis := <stx-get-ast-analysis> selected // Get scope graph (for Ref() relation from call to definition).
+      
+      ; (function-name, args) := <get-subterms-from-call> selected // Extract the name- and the argument subterms from the function call term.
+      
+      ; definition-index := <get-ast-index-helper> (<stx-get-ast-ref(|analysis)> function-name) // Get TermIndex of function definition from the Ref() relation.
+      ; [definition-node] := <collect(check-for-definition(|definition-index))> ast // Get function definition term from the TermIndex.
+      ; (params, type, body) := <get-subterms-from-definition> definition-node // Extract the required subterms from the function definition term.
+            
+      ; (new-body, last-statement) := <split-init-last> body // The last statement should replace the call expression.
+      ; if <is-void> type // In case the function doesn't return a value, the last statement isn't necessarily a return statement.
+          then return-expression := <extract-return <+ id> last-statement
+          else return-expression := <extract-return> last-statement
+          end
+      ; <lt> (<occurrences(extract-return)> new-body, 1) // Ensure that there are no return statements left.
+      
+      ; new-vars := <declare-parameters(get-subterms-from-argument, make-variable)> (args, params) // Construct new variable definitions for the arguments.
+      
+      ; new-block := <construct-block> (new-vars, new-body)
+      
+      ; call-stmt := <find-surrounding-stmt(is-statement|ast, selected)> ast
+      
+      ; if <oncetd(?[_|_]; one(?call-stmt))> ast // Checks if the statement that contains the call is part of a list of statements
+          // If the statement containing the call is part of a list of statements, simply insert the code block above it.
+          then new-ast := <oncetd(find-and-replace(|call-stmt, selected, return-expression, new-block))> ast
+          // If the statement containing the call is NOT part of a list of statements, replace it with a list of statements.
+          else new-ast := <oncetd(find-and-replace-single-statement(construct-block, wrap-block|call-stmt, selected, return-expression, new-block))> ast
+          end
+          
+
+
+  
+  // Creates a list of VarDec() nodes based on the arguments of the function call.
+  declare-parameters(get-subterms-from-argument, make-variable): ([], []) -> []
+  declare-parameters(get-subterms-from-argument, make-variable): ([a|args], [p|params]) -> variables
+    with
+        (name, type) := <get-subterms-from-argument> p
+      ; variables := [<make-variable> (name, type, a) | <declare-parameters(get-subterms-from-argument, make-variable)> (args, params)]
+      
+  // In some languages the Ref() relation returns a list of terms instead of a single term.
+  // If this is the case we assume that the first entry in the list is the correct definition.
+  get-ast-index-helper: t -> <stx--get-ast-index> t
+  get-ast-index-helper: [t|_] -> <stx--get-ast-index> t
+
+  find-surrounding-stmt(is-statement|call-stmt, selected): selected -> call-stmt
+  
+  find-surrounding-stmt(is-statement|call-stmt, selected): t -> result
+    where
+      <is-statement> t
+      ; <one(find-surrounding-stmt(is-statement|t, selected); ?result)> t
+  
+  find-surrounding-stmt(is-statement|call-stmt, selected): t -> result
+    where
+      <one(find-surrounding-stmt(is-statement|call-stmt, selected); ?result)> t
+  
+  
+  
+    // Looks for the list of statements that contains the statement with the function call.
+  // It inserts the new code block above said statement and replaces the call expression in said statement.
+  find-and-replace(|call-stmt, selected, return-expression, block): t -> new-t
+    where
+        <one(?call-stmt)> t
+      ; (before, call-stmt, after) := <split-fetch-keep(?call-stmt)> t
+      ; new-call-stmt := <oncetd(replace-call(|selected, return-expression))> call-stmt
+      ; new-t := <concat> [before, block, [new-call-stmt], after]
+        
+  replace-call(|selected, return-expression): selected -> return-expression
+  
+  
+  find-and-replace-single-statement(construct-block, wrap-block|call-stmt, selected, return-expression, block): call-stmt -> new-t
+    where
+        new-stmt := <oncetd(replace-call(|selected, return-expression))> call-stmt
+      ; new-t := <wrap-block> (<construct-block> (block, [new-stmt]))
+  
+  
+  

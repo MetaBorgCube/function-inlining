@@ -1,0 +1,62 @@
+module statix/shadowing
+
+language cpp20
+
+test basic shadowing [[
+int x;
+
+int main() {
+  int [[x]];
+  [[x]];
+}
+]]
+analysis succeeds
+resolve #2 to #1
+
+test shadow inside namespaces [[
+namespace a {
+  int x;
+  namespace b {
+    char* [[x]];
+    int test() {
+      [[x]] = "Hello world";
+    }
+  }
+}
+]]
+analysis succeeds
+resolve #2 to #1
+
+test shadow using namespace [[
+namespace a {
+  int x;
+  namespace [[a]] {
+    int [[x]];
+  }
+  namespace b {
+    void test() {
+      using namespace [[a]];
+	  [[x]];
+    }
+  }
+}
+]]
+analysis succeeds
+resolve #3 to #1
+resolve #4 to #2
+
+test no shadowing in namespaces [[
+namespace a {
+  int [[x]];
+  namespace a {
+    int x;
+  }
+  namespace b {
+    void test() {
+	  [[x]];
+    }
+  }
+}
+]]
+analysis succeeds
+resolve #2 to #1

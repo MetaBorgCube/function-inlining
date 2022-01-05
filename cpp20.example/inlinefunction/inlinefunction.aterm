@@ -1,0 +1,40 @@
+TranslationUnit(
+  [ FunDef(
+      [Int()]
+    , Declarator(
+        NoPointer()
+      , FunDeclTyped(
+          IdDecl("increment")
+        , ParamList(
+            [ParamDecl1([Int()], Declarator(NoPointer(), IdDecl("x")))]
+          )
+        )
+      )
+    , []
+    , Compound(
+        [Return(Add(Var(NamespaceID(None(), "x")), DecInt("1")))]
+      )
+    )
+  , FunDef(
+      [Int()]
+    , Declarator(NoPointer(), FunDeclTyped(IdDecl("main"), ParamList([])))
+    , []
+    , Compound(
+        [ Decl(
+            [Int()]
+          , [ InitDecl(
+                Declarator(NoPointer(), ArrayDecl(IdDecl("foo")))
+              , Initializer(
+                  [ DecInt("10")
+                  , Call(Var(NamespaceID(None(), "increment")), [DecInt("2")])
+                  , DecInt("30")
+                  ]
+                )
+              )
+            ]
+          )
+        ]
+      )
+    )
+  ]
+)

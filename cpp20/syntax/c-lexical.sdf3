@@ -1,0 +1,110 @@
+module c-lexical
+
+sorts Constant
+context-free syntax
+
+  Constant = IntegerConstant 
+  Constant = CharacterConstant 
+  Constant = FloatingConstant 
+//  Constant = EnumerationConstant 
+//  
+//  EnumerationConstant.Enum = ID
+
+sorts TypeID-OPT
+context-free syntax
+  TypeID-OPT          = TypeID
+  TypeID-OPT.NoTypeID = <>
+
+lexical sorts ID TypeID
+lexical syntax // identifiers
+  ID   	 = [a-z] [a-zA-Z0-9\_]*
+  TypeID = [A-Z] [a-zA-Z0-9\_]*
+lexical restrictions
+  ID	 -/- [a-zA-Z0-9\_]
+  TypeID -/- [a-zA-Z0-9\_]
+template options
+  ID = keyword {reject}
+  TypeID = keyword {reject}
+
+
+sorts IntegerConstant
+context-free syntax // integer constants
+  IntegerConstant.DecInt = DecInt 
+  IntegerConstant.OctInt = OctInt 
+  IntegerConstant.HexInt = HexInt 
+
+lexical sorts DecInt OctInt HexInt
+lexical syntax
+  DecInt = [0] LongUnsigned?
+  DecInt = [1-9][0-9]* LongUnsigned?
+  OctInt = [0][0-7]+ LongUnsigned?
+  HexInt = [0][xX][0-9a-fA-F]+ LongUnsigned?
+  LongUnsigned = [uU] [lL]?
+  LongUnsigned = [lL] [uU]? 
+lexical restrictions
+  DecInt -/- [0-9uUlL]
+  OctInt -/- [0-7uUlL]
+  HexInt -/- [0-9a-fA-FuUlL]
+
+sorts FloatingConstant
+context-free syntax
+  FloatingConstant.Float = FLOAT
+
+lexical sorts FLOAT
+lexical syntax
+  FLOAT =        "." [0-9]+ ([eE] [\-]? [0-9]+)? [fFlL]?
+  FLOAT = [0-9]+ "." [0-9]+ ([eE] [\-]? [0-9]+)? [fFlL]?
+lexical restrictions
+  FLOAT -/- [0-9fFlLeE]
+  
+sorts CharacterConstant
+context-free syntax
+  CharacterConstant.Char = CHAR 
+
+lexical sorts CHAR // CharChar
+lexical syntax 
+  CHAR     = "'" CharChar "'"
+  CharChar = ~[\\\']
+  CharChar = "\\" [ntvbrfa\\\?\'\"]
+  CharChar = "\\ooo"
+  CharChar = "\\x" [0-9a-fA-F] [0-9a-fA-F]
+  CharChar = "\\0"
+
+lexical sorts STRING // StringChar BackSlashChar
+lexical syntax // strings
+  STRING     = [L]? "\"" StringChar* "\"" 
+  StringChar = ~[\"\n] 
+  StringChar = "\\\"" 
+  StringChar = BackSlashChar 
+  BackSlashChar = "\\" 
+lexical restrictions
+  BackSlashChar -/- [\"]
+
+
+lexical syntax // whitespace
+  LAYOUT = [\ \t\n\r] 
+context-free restrictions
+  LAYOUT? -/- [\ \t\n\r]
+
+
+lexical syntax // multi-line comments
+  CommentChar = [\*] 
+  LAYOUT = "/*" InsideComment* "*/" 
+  InsideComment = ~[\*] 
+  InsideComment = CommentChar 
+lexical restrictions
+  CommentChar -/- [\/]
+context-free restrictions
+  LAYOUT? -/- [\/].[\*]
+
+
+lexical syntax // single-line comments
+  LAYOUT = "//" ~[\n\r]* NewLineEOF 
+  NewLineEOF = [\n\r] 
+  NewLineEOF = EOF 
+  EOF =  
+lexical restrictions
+  EOF -/- ~[]
+context-free restrictions
+  LAYOUT? -/- [\/].[\/]
+  

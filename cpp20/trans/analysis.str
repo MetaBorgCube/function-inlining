@@ -1,0 +1,63 @@
+module analysis
+
+imports
+
+  statixruntime
+  statix/api
+  
+  libspoofax/term/origin
+  libspoofax/resource/path
+
+  pp
+  injections/-
+  signatures/-
+  desugar
+  renaming
+  inlinefunction
+
+signature
+sorts NamedFile
+constructors
+  NamedFile : FileName1 * Start -> NamedFile
+
+rules // Analysis
+
+  // single-file analysis
+//  editor-analyze = stx-editor-analyze(pre-analyze, post-analyze|"statics", "programOk")
+  
+  // see README.md for details on how to switch to multi-file analysis
+  // multi-file analysis
+  editor-analyze = stx-editor-analyze(pre-analyze, post-analyze|"statics", "projectOk", "fileOk")
+
+  module-name = origin-file; current-language-relative-source-path
+
+  prefix-name: mod -> NamedFile(filename, mod)
+  with  filename := <module-name> mod
+  
+  remove-name = ?NamedFile(_, <id>)
+
+  pre-analyze  = origin-track-forced(desugar-all; explicate-injections-cpp20-Start; prefix-name)
+  post-analyze = origin-track-forced(remove-name; implicate-injections-cpp20-Start)
+
+rules // Editor Services
+
+  editor-resolve = stx-editor-resolve
+
+  editor-hover = stx-editor-hover
+
+rules // Debugging
+
+  // Prints the abstract syntax ATerm of a selection.
+  debug-show-aterm: (selected, _, _, path, project-path) -> (filename, result)
+    with filename := <guarantee-extension(|"aterm")> path
+       ; result   := selected
+
+  // Prints the pre-analyzed abstract syntax ATerm of a selection.
+  debug-show-pre-analyzed: (selected, _, _, path, project-path) -> (filename, result)
+    with filename := <guarantee-extension(|"pre-analyzed.aterm")> path
+       ; result   := <pre-analyze> selected
+
+  // Prints the analyzed annotated abstract syntax ATerm of a selection.
+  debug-show-analyzed: (selected, _, _, path, project-path) -> (filename, result)
+    with filename := <guarantee-extension(|"analyzed.aterm")> path
+       ; result   := selected
