@@ -1,15 +1,13 @@
-int increment(int y)
+int increment(int x)
 {
-  int z = 5;
-  z;
-  return y + 1;
+  return x + 1;
 }
 
 int main( )
 {
-  int a;
-  int y = 2;
-  int z = 5;
-  z;
-  a = y + 1;
+  for(int y = 0; y < 5; y += 1)
+    {
+      int x = y;
+      x + 1;
+    }
 }

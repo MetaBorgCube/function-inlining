@@ -1,4 +1,4 @@
-module inlinefunction
+module inlinefunction-cpp20
 // File added by Loek
 
 imports
@@ -10,16 +10,16 @@ imports
 
 rules
   inline-function-test(|selected-term): ast -> <inline-function(find-call, get-subterms-from-call, get-subterms-from-definition, get-subterms-from-argument, 
-                           get-term-from-name, make-variable, is-void, extract-return, construct-block,
-                           is-statement, wrap-block, editor-analyze, pp-debug)> (selected-term, ast)
+                           get-term-from-name, make-variable, editor-analyze, pp-debug, insert-block)> (selected-term, ast)
   
   inline-function-menu-action = 
     inline-function-action(find-call, get-subterms-from-call, get-subterms-from-definition, 
-    					   get-subterms-from-argument, get-term-from-name, make-variable, is-void, 
-    					   extract-return, construct-block, is-statement, wrap-block, editor-analyze, pp-debug)
+    					   get-subterms-from-argument, get-term-from-name, make-variable, editor-analyze, pp-debug, insert-block | "inlined.cpp")
   
-  // In cpp the call statement can be nested in constructors like Exp().
+  // The call statement can be nested in constructors like Exp().
   // So we need to traverse the term t and look for a Call() constructor.
+  // As long as only one call statements is selected, the first item in the list
+  // returned by collect will be the corresponding call term.
   find-call: t -> <index> (1, <collect(?Call(_, _))> t)
   
   // We expect the Ref() relation to be on the name string subterm of both the call- and definition terms. 
@@ -38,20 +38,78 @@ rules
   
   extract-return: Return(t) -> t
   
-  // Combine the variable definitions for the arguments and the function body statements.
-  construct-block: (new-vars, new-block) -> <concat> [new-vars, new-block]
-  
-  // Succeeds if the type is void, fails otherwise
-  is-void = ?[Void()]
+
 
   // The Ref() relation points to the function name subterm instead of the whole term. 
   // This function extracts the whole term by matching on the name.
   get-term-from-name(|name): t -> t
     where
-        <?FunDef(_, Declarator(_, FunDeclTyped(IdDecl(name), _)), _, _)> t
+      <?FunDef(_, Declarator(_, FunDeclTyped(IdDecl(name), _)), _, _)> t
+  
+  insert-block(|selected, vars, body-annotated, type): ast -> new-ast
+    with
+        (new-body, return-expression) := <construct-block> (vars, body-annotated, type)
+      ; call-stmt := <find-surrounding-stmt(is-statement|ast, selected)> ast
+      // Insert the code block.
+      ; if <oncetd(?[_|_]; one(?call-stmt))> ast // Checks if the statement that contains the call is part of a list of statements
+          // If the statement containing the call is part of a list of statements, simply insert the code block above it.
+          then new-ast := <oncetd(find-and-replace(|call-stmt, selected, return-expression, new-body))> ast
+          // If the statement containing the call is NOT part of a list of statements, replace it with a list of statements.
+          else new-ast := <oncetd(find-and-replace-single-statement(|call-stmt, selected, return-expression, new-body))> ast
+          end
+    
+  // Combine the variable definitions for the arguments and the function body statements.
+  construct-block: (vars, body, type) -> (<concat> [vars, new-body], return-expression)
+    where
+      (new-body, last-statement) := <split-init-last> body // The last statement should replace the call expression.
+      ; if <is-void> type // In case the function doesn't return a value, the last statement isn't necessarily a return statement.
+          then return-expression := <extract-return <+ id> last-statement
+          else return-expression := <extract-return> last-statement
+          end
+      ; <lt> (<occurrences(extract-return)> new-body, 1) // Ensure that there are no return statements left.
+
+  // Succeeds if the type is void, fails otherwise
+  is-void = ?[Void()]
+
+    // If the call expression is a statement itself we don't need to look for 
+  // the surrounding statement (in Tiger this is always the case).
+  find-surrounding-stmt(is-statement|call-stmt, selected): _ -> selected
+    where
+      <is-statement> selected
+  
+  // If the selected call expression is reached, the latest found statement is the surrounding statement.
+  find-surrounding-stmt(is-statement|call-stmt, selected): selected -> call-stmt
+  
+  // If the current term is a statement, store it as the latest found statement.
+  find-surrounding-stmt(is-statement|call-stmt, selected): t -> result
+    where
+      <is-statement> t
+      ; <one(find-surrounding-stmt(is-statement|t, selected); ?result)> t
+  
+  // If the current term is not the selected call expression nor a statement,
+  // simply explore its subterms.
+  find-surrounding-stmt(is-statement|call-stmt, selected): t -> result
+    where
+      <one(find-surrounding-stmt(is-statement|call-stmt, selected); ?result)> t
       
   // This strategy should be generated in one of the injections.str files.
   is-statement = is-cpp20-BlockItem-or-inj
 
-  wrap-block: block -> Compound(block)
+  // Looks for the list of statements that contains the statement with the function call.
+  // It inserts the new code block above said statement and replaces the call expression in said statement.
+  find-and-replace(|call-stmt, selected, return-expression, block): t -> new-t
+    where
+        <one(?call-stmt)> t
+      ; (before, call-stmt, after) := <split-fetch-keep(?call-stmt)> t
+      ; new-call-stmt := <oncetd(replace-call(|selected, return-expression))> call-stmt
+      ; new-t := <concat> [before, block, [new-call-stmt], after]
+        
+  replace-call(|selected, return-expression): selected -> return-expression
+
+  find-and-replace-single-statement(|call-stmt, selected, return-expression, block): call-stmt -> new-t
+    where
+        new-stmt := <oncetd(replace-call(|selected, return-expression))> call-stmt
+      ; new-t := Compound(<concat> [block, [new-stmt]])
+  
+
   
