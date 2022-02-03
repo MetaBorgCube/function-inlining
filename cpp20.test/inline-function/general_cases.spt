@@ -32,7 +32,6 @@ int increment(int x) {
 }
 
 int main() {
-    
     increment(2) + [[increment(2)]];
 }
 ]] run inline-function-test(|#1) to [[

@@ -1,3 +1,15 @@
 module inline-function/variable_capture
 
 language cpp20
+
+test basic expression statement [[
+int increment(int x) {
+    return x + 1;
+}
+
+int main() {
+    int x = 5;
+    [[increment(2)]];
+    x = 6;
+}
+]] run inline-function-test(|#1) fails

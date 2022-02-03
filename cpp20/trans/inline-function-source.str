@@ -11,7 +11,7 @@ rules
   						 get-subterms-from-argument, get-term-from-name, make-variable, 
   						 editor-analyze, pp-debug, insert-block | extension):
     (t, _, ast, path, _) -> (filename, result)
-    with 
+    where 
         filename := <guarantee-extension(|extension)> path // Filename to store new program in.
       ; new-ast := <inline-function(find-call, get-subterms-from-call, get-subterms-from-definition, get-subterms-from-argument, 
                          get-term-from-name, make-variable, editor-analyze, pp-debug, insert-block)> (t, ast)
@@ -20,8 +20,10 @@ rules
   inline-function(find-call, get-subterms-from-call, get-subterms-from-definition, get-subterms-from-argument, 
                          get-term-from-name, make-variable, editor-analyze, pp-debug, insert-block):
     (t, ast) -> ast-reannotated
-    with
-      // In some languages the call term can be nested in the selected term. Extract it. 
+    where
+      // In some languages the call term can be nested in the selected term. Extract it.
+      // Note: if you select a full expression, it will select the first call in the expression.
+      // Not selecting anything will result in the first call in the program.
 	    selected := <find-call> t
 
       // Get the scope graph.
@@ -85,11 +87,11 @@ rules
           ; <elem> (annotation, <get-annotations> definition-name)
         then <elem> (annotation, <get-annotations> t)
         end
-      // If the term has an annotation starting with "ref" and it references another term, 
+      // If the term has an annotation starting with "ref", 
       // the referenced term should also have that annotation.
       ; if annotation := <fetch-elem(string-starts-with(|"ref"))> (<get-annotations> t)
-         ; definition := <get-ref-helper> (<stx-get-ast-ref(|analysis)> t)
-        then <elem> (annotation, <get-annotations> definition)
+        then definition := <get-ref-helper> (<stx-get-ast-ref(|analysis)> t) 
+           ; <elem> (annotation, <get-annotations> definition)
         end
  
   map-referenced-definitions(|analysis, params, refs): t -> <add-annotation(|annotation)> t
@@ -132,7 +134,7 @@ rules
   // Creates a list of definition terms for the arguments of the function call.
   declare-parameters(get-subterms-from-argument, make-variable|refs): ([], []) -> []
   declare-parameters(get-subterms-from-argument, make-variable|refs): ([a|args], [p|params]) -> variables
-    with
+    where
         (n, type) := <get-subterms-from-argument> p
       ; name := <try(annotate-definitions(|refs))> n
       ; variables := [<make-variable> (name, type, a) | <declare-parameters(get-subterms-from-argument, make-variable|refs)> (args, params)]
