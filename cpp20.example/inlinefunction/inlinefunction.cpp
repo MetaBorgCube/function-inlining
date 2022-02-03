@@ -3,6 +3,6 @@ int increment(int x) {
 }
 
 int main() {
-    for (int y = 0; y < 5; y+=1)
-    	increment(y);
+    increment(2) + increment(2);
 }
+

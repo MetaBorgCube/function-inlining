@@ -5,9 +5,6 @@ int increment(int x)
 
 int main( )
 {
-  for(int y = 0; y < 5; y += 1)
-    {
-      int x = y;
-      x + 1;
-    }
+  int x = 2;
+  increment(2) + (x + 1);
 }

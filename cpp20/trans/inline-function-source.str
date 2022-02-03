@@ -35,22 +35,39 @@ rules
       ; definition-term := <collect-one(get-term-from-name(|definition-name))> ast // Get encapsulating definition term.
       ; (params, type, body) := <get-subterms-from-definition> definition-term // Extract required subterms.
       
-      // Set up reference annotations.
-      ; refs := <new-hashtable> // Maps definition terms to an annotation they are meant to receive. Can be updated dynamically.
-      ; body-annotated := <topdown(try(annotate-definition(|refs)))> (<topdown(try(get-ref-relation(|analysis, params, refs)))> body)
-      ; new-vars := <declare-parameters(get-subterms-from-argument, make-variable|refs)> (args, params) // Define variables for arguments.
-      ; ast-annotated := <topdown(try(annotate-definition(|refs)))> ast
-      ; <hashtable-destroy> refs
+      //--- Set up annotations for name binding check at the end.
+      ; refs := <new-hashtable> // Maps definition terms to corresponding unique annotation.
+      ; body-annotated1 := <topdown(try(map-referenced-definitions(|analysis, params, refs)))> body
+      ; body-annotated2 := <topdown(try(annotate-definitions(|refs)))> body-annotated1
+      ; params-annotated := <declare-parameters(get-subterms-from-argument, make-variable|refs)> (args, params)
+	  // Now that individual references in the body and parameters have been annotated, add a general annotation to all inlined terms.
+      ; annotation := <newname> "inlined_"
+      ; params-annotated2 := <topdown(add-annotation(|annotation))> params-annotated
+      ; body-annotated3 := <topdown(add-annotation(|annotation))> body-annotated2
+      //--- Finished setting up annotations.
+      
+      // Inline the function definition.
+      ; ast-inlined := <insert-block(|selected, params-annotated2, body-annotated3, type)> ast
+      
+//      // Set up reference annotations.
+//      ; refs := <new-hashtable> // Maps definition terms to an annotation they are meant to receive. Can be updated dynamically.
+//      ; body-annotated := <topdown(try(annotate-definition(|refs)))> (<topdown(try(get-ref-relation(|analysis, params, refs)))> body)
+//      ; new-vars := <declare-parameters(get-subterms-from-argument, make-variable|refs)> (args, params) // Define variables for arguments.
+//      ; ast-annotated := <topdown(try(annotate-definition(|refs)))> ast
+//      ; <hashtable-destroy> refs
               
-      ; ast-inlined := <insert-block(|selected, new-vars, body-annotated, type)> ast-annotated
+//      ; ast-inlined := <insert-block(|selected, new-vars, body-annotated, type)> ast-annotated
             
       // Re-analyze the AST.
       // This uses a function implemented by Phil for Renaming.      
       ; <getfirst(?TermIndex(path, _))> <get-annotations> t
       ; ([(_, ast-reannotated)], new-analysis) := <rerun-analysis-single(editor-analyze)> [(path, (), ast-inlined)]
-      
+
       // Check if reference annotations have been preserved.
-      ; <topdown(check-ref-preservation(|new-analysis))> ast-reannotated
+      ; <topdown(check-ref-preservation(|new-analysis, annotation))> ast-reannotated
+      
+//      // Check if reference annotations have been preserved.
+//      ; <topdown(check-ref-preservation(|new-analysis))> ast-reannotated
   
     
   
@@ -58,8 +75,24 @@ rules
   // If this is the case we assume that the first entry in the list is the correct definition.
   get-ref-helper: [t|_] -> t
   get-ref-helper: t -> t
+
+  add-annotation(|annotation): t -> <set-annotations> (t, <concat> [<get-annotations> t, [annotation]])
   
-  get-ref-relation(|analysis, params, refs): t -> <add-annotation> (t, annotation)
+  check-ref-preservation(|analysis, annotation): t -> t
+    where
+      // If the term references an inlined definition, the term itself should be inlined too (marked with annotation).
+        if definition-name := <get-ref-helper> (<stx-get-ast-ref(|analysis)> t)
+          ; <elem> (annotation, <get-annotations> definition-name)
+        then <elem> (annotation, <get-annotations> t)
+        end
+      // If the term has an annotation starting with "ref" and it references another term, 
+      // the referenced term should also have that annotation.
+      ; if annotation := <fetch-elem(string-starts-with(|"ref"))> (<get-annotations> t)
+         ; definition := <get-ref-helper> (<stx-get-ast-ref(|analysis)> t)
+        then <elem> (annotation, <get-annotations> definition)
+        end
+ 
+  map-referenced-definitions(|analysis, params, refs): t -> <add-annotation(|annotation)> t
     where
         definition := <get-ref-helper> (<stx-get-ast-ref(|analysis)> t)
       ; if not(annotation := <hashtable-get(|definition)> refs)
@@ -67,28 +100,41 @@ rules
              ; <hashtable-put(|definition, annotation)> refs
           end
   
-  annotate-definition(|refs): t -> <add-annotation> (t, annotation)
+  annotate-definitions(|refs): t -> <add-annotation(|annotation)> t
     where
         annotation := <hashtable-get(|t)> refs
       ; <hashtable-remove(|t)> refs
+        
+//  get-ref-relation(|analysis, params, refs): t -> <add-annotation> (t, annotation)
+//    where
+//        definition := <get-ref-helper> (<stx-get-ast-ref(|analysis)> t)
+//      ; if not(annotation := <hashtable-get(|definition)> refs)
+//          then annotation := <newname> "ref"
+//             ; <hashtable-put(|definition, annotation)> refs
+//          end
+//  
+//  annotate-definitions(|refs): t -> <add-annotation> (t, annotation)
+//    where
+//        annotation := <hashtable-get(|t)> refs
+//      ; <hashtable-remove(|t)> refs
+//  
+//  add-annotation(|annotation): t -> <set-annotations> (t, <concat> [<get-annotations> t, [annotation]])
+//  
+//  check-ref-preservation(|analysis): t -> t
+//    where
+//      if annotation := <fetch-elem(string-starts-with(|"ref"))> (<get-annotations> t)
+//       ; definition := <get-ref-helper> (<stx-get-ast-ref(|analysis)> t)
+//        then <elem> (annotation, <get-annotations> definition)
+//        end
   
-  add-annotation: (t, annotation) -> <set-annotations> (t, <concat> [<get-annotations> t, [annotation]])
-  
-  check-ref-preservation(|analysis): t -> t
-    where
-      if annotation := <fetch-elem(string-starts-with(|"ref"))> (<get-annotations> t)
-       ; definition := <get-ref-helper> (<stx-get-ast-ref(|analysis)> t)
-        then <elem> (annotation, <get-annotations> definition)
-        end
-  
-  
-  
+
+      
   // Creates a list of definition terms for the arguments of the function call.
   declare-parameters(get-subterms-from-argument, make-variable|refs): ([], []) -> []
   declare-parameters(get-subterms-from-argument, make-variable|refs): ([a|args], [p|params]) -> variables
     with
         (n, type) := <get-subterms-from-argument> p
-      ; name := <oncetd(annotate-definition(|refs)) <+ id> n
+      ; name := <try(annotate-definitions(|refs))> n
       ; variables := [<make-variable> (name, type, a) | <declare-parameters(get-subterms-from-argument, make-variable|refs)> (args, params)]
   
   

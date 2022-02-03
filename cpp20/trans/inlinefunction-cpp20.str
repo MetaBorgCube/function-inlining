@@ -46,9 +46,9 @@ rules
     where
       <?FunDef(_, Declarator(_, FunDeclTyped(IdDecl(name), _)), _, _)> t
   
-  insert-block(|selected, vars, body-annotated, type): ast -> new-ast
+  insert-block(|selected, params, body, type): ast -> new-ast
     with
-        (new-body, return-expression) := <construct-block> (vars, body-annotated, type)
+        (new-body, return-expression) := <construct-block> (params, body, type)
       ; call-stmt := <find-surrounding-stmt(is-statement|ast, selected)> ast
       // Insert the code block.
       ; if <oncetd(?[_|_]; one(?call-stmt))> ast // Checks if the statement that contains the call is part of a list of statements
@@ -59,7 +59,7 @@ rules
           end
     
   // Combine the variable definitions for the arguments and the function body statements.
-  construct-block: (vars, body, type) -> (<concat> [vars, new-body], return-expression)
+  construct-block: (params, body, type) -> (<concat> [params, new-body], return-expression)
     where
       (new-body, last-statement) := <split-init-last> body // The last statement should replace the call expression.
       ; if <is-void> type // In case the function doesn't return a value, the last statement isn't necessarily a return statement.

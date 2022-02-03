@@ -1,45 +1,45 @@
 TranslationUnit(
-  [ Decl(
-      [ ClassType(
-          Class()
-        , "MyClass"
-        , ClassBody(
-            ClassBodyDeclarationDefault([])
-          , [ ClassBodyDeclaration(
-                Public()
-              , [ Decl([Int()], [Declarator(NoPointer(), IdDecl("myvar"))])
-                , FunDef(
-                    [Void()]
-                  , Declarator(NoPointer(), FunDeclTyped(IdDecl("hello"), ParamList([])))
-                  , []
-                  , Compound(
-                      [Exp(
-                         Assign(Var(NamespaceID(None(), "myvar")), AssignNorm(), DecInt("5"))
-                       )]
-                    )
-                  )
-                ]
-              )
-            ]
-          )
-        )
-      ]
+  [ FunDef(
+      [Void()]
+    , Declarator(NoPointer(), FunDeclTyped(IdDecl("do_something"), ParamList([])))
     , []
+    , Compound([Return(NoExp())])
+    )
+  , FunDef(
+      [Void()]
+    , Declarator(NoPointer(), FunDeclTyped(IdDecl("do_something_else"), ParamList([])))
+    , []
+    , Compound([Return(NoExp())])
     )
   , FunDef(
       [Int()]
     , Declarator(
         NoPointer()
       , FunDeclTyped(
-          IdDecl("increment")
+          IdDecl("myfunc")
         , ParamList(
-            [ParamDecl1([Int()], Declarator(NoPointer(), IdDecl("x")))]
+            [ParamDecl1([Int()], Declarator(NoPointer(), IdDecl("y")))]
           )
         )
       )
     , []
     , Compound(
-        [Return(Add(Var(NamespaceID(None(), "x")), DecInt("1")))]
+        [ Decl([Int()], [Declarator(NoPointer(), IdDecl("result_1"))])
+        , IfElse(
+            Order(Var(NamespaceID(None(), "y")), Lt(), DecInt("5"))
+          , Compound(
+              [Exp(Call(Var(NamespaceID(None(), "do_something")), []))]
+            )
+          , IfElse(
+              Order(Var(NamespaceID(None(), "y")), Lt(), DecInt("10"))
+            , Compound([Return(DecInt("10"))])
+            , Compound(
+                [Exp(Call(Var(NamespaceID(None(), "do_something_else")), []))]
+              )
+            )
+          )
+        , Return(Var(NamespaceID(None(), "y")))
+        ]
       )
     )
   , FunDef(
@@ -47,13 +47,13 @@ TranslationUnit(
     , Declarator(NoPointer(), FunDeclTyped(IdDecl("main"), ParamList([])))
     , []
     , Compound(
-        [ Decl([Int()], [Declarator(NoPointer(), IdDecl("y"))])
-        , Exp(
-            Assign(
-              Var(NamespaceID(None(), "y"))
-            , AssignNorm()
-            , Call(Var(NamespaceID(None(), "increment")), [DecInt("2")])
-            )
+        [ Decl(
+            [Int()]
+          , [ InitDecl(
+                Declarator(NoPointer(), IdDecl("x"))
+              , Call(Var(NamespaceID(None(), "myfunc")), [DecInt("12")])
+              )
+            ]
           )
         ]
       )
