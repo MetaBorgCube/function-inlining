@@ -24,22 +24,13 @@ TranslationUnit(
             [Int()]
           , [InitDecl(Declarator(NoPointer(), IdDecl("x")), DecInt("2"))]
           )
-        , For(
-            ForInitDecl(
-              [Int()]
-            , [InitDecl(Declarator(NoPointer(), IdDecl("y")), DecInt("0"))]
-            )
-          , Order(
-              Add(
-                Var(NamespaceID(None(), "x"))
-              , MulDiv(DecInt("1"), Mul(), DecInt("5"))
-              )
-            , Lt()
-            , DecInt("5")
-            )
-          , Assign(Var(NamespaceID(None(), "y")), AssignAdd(), DecInt("1"))
-          , Exp(Var(NamespaceID(None(), "y")))
+        , Exp(
+            Assign(Var(NamespaceID(None(), "x")), AssignNorm(), DecInt("5"))
           )
+        , Exp(
+            Assign(Var(NamespaceID(None(), "x")), AssignNorm(), DecInt("6"))
+          )
+        , Exp(Add(Var(NamespaceID(None(), "x")), DecInt("1")))
         ]
       )
     )

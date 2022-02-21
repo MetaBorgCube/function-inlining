@@ -9,12 +9,14 @@ imports
   injections/c-syntax-injections
 
 rules
-  inline-function-test(|selected-term): ast -> <inline-function(find-call, get-subterms-from-call, get-subterms-from-definition, get-subterms-from-argument, 
-                           get-term-from-name, make-variable, editor-analyze, pp-debug, insert-block)> (selected-term, ast)
+  inline-function-test(|selected-term): ast -> <inline-function(find-call, get-subterms-from-call, 
+    get-subterms-from-definition, get-subterms-from-argument, get-term-from-name, make-variable, 
+    editor-analyze, pp-debug, insert-block, error-msg-rename)> (selected-term, ast)
   
   inline-function-menu-action = 
     inline-function-action(find-call, get-subterms-from-call, get-subterms-from-definition, 
-    					   get-subterms-from-argument, get-term-from-name, make-variable, editor-analyze, pp-debug, insert-block | "inlined.cpp")
+    get-subterms-from-argument, get-term-from-name, make-variable, editor-analyze, pp-debug, 
+    insert-block, error-msg-rename | "inlined.cpp")
   
   // The call statement can be nested in constructors like Exp().
   // So we need to traverse the term t and look for a Call() constructor.
@@ -111,5 +113,5 @@ rules
         new-stmt := <oncetd(replace-call(|selected, return-expression))> call-stmt
       ; new-t := Compound(<concat> [block, [new-stmt]])
   
-
+  error-msg-rename = string-ends-with(|"already defined")
   
