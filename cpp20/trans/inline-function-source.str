@@ -30,7 +30,7 @@ rules
       ; analysis := <stx-get-ast-analysis> selected
       
       // Extract the name- and the argument subterms from the function call term.
-      ; (function-name, args) := <get-subterms-from-call> selected
+      ; (function-name, args, namespace) := <get-subterms-from-call> selected
       
       // Find and extract the function definition.
       ; definition-name := <get-ref-helper> (<stx-get-ast-ref(|analysis)> function-name) // Get definition name term from Ref().
@@ -61,7 +61,7 @@ rules
 	  ; <list-loop(try(erronous-inlined-definition(error-msg-rename|to-be-renamed, annotation1)))> analysis-errors // If there are analysis errors with inlined definitions, try renaming them to fix it.
       ; <topdown(check-ref-preservation(|to-be-renamed, new-analysis, annotation1))> ast-reannotated
       ; ast-result := <topdown(try(fix-capture(|to-be-renamed)))> ast-reannotated
-      ; <hashtable-destroy> to-be-renamed
+      ; <hashtable-destroy> to-be-renamed      
   
     
   

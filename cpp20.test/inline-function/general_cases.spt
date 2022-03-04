@@ -26,7 +26,7 @@ int main( )
 }
 ]]
 
-test one statement two function calls 1 [[
+test one statement two function calls inline right [[
 int increment(int x) {
     return x + 1;
 }
@@ -47,7 +47,7 @@ int main( )
 }
 ]]
 
-test one statement two function calls 2 [[
+test one statement two function calls inline left [[
 int increment(int x) {
     return x + 1;
 }
