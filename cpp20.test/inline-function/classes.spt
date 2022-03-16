@@ -76,15 +76,16 @@ int main() {
 //]] run inline-function-test(|#1) to [[
 //class MyClass {
 //  public :
-//    int x = 2; int get_x( )
-//               {
-//                 return x;
-//               }
+//    int x = 2; 
+//    int get_x( )
+//    {
+//      return x;
+//    }
 //} ;
 //
 //int main( )
 //{
 //  MyClass bar;
-//  bar.x;
+//  x;
 //}
 //]]

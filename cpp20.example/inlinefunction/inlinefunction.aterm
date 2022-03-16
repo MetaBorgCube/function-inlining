@@ -1,61 +1,16 @@
 TranslationUnit(
   [ FunDef(
       [Void()]
-    , Declarator(NoPointer(), FunDeclTyped(IdDecl("do_something"), ParamList([])))
+    , Declarator(NoPointer(), FunDeclTyped(IdDecl("foo"), ParamList([])))
     , []
-    , Compound([Return(NoExp())])
-    )
-  , FunDef(
-      [Void()]
-    , Declarator(NoPointer(), FunDeclTyped(IdDecl("do_something_else"), ParamList([])))
-    , []
-    , Compound([Return(NoExp())])
-    )
-  , FunDef(
-      [Int()]
-    , Declarator(
-        NoPointer()
-      , FunDeclTyped(
-          IdDecl("myfunc")
-        , ParamList(
-            [ParamDecl1([Int()], Declarator(NoPointer(), IdDecl("y")))]
-          )
-        )
-      )
-    , []
-    , Compound(
-        [ Decl([Int()], [Declarator(NoPointer(), IdDecl("result_1"))])
-        , IfElse(
-            Order(Var(NamespaceID(None(), "y")), Lt(), DecInt("5"))
-          , Compound(
-              [Exp(Call(Var(NamespaceID(None(), "do_something")), []))]
-            )
-          , IfElse(
-              Order(Var(NamespaceID(None(), "y")), Lt(), DecInt("10"))
-            , Compound([Return(DecInt("10"))])
-            , Compound(
-                [Exp(Call(Var(NamespaceID(None(), "do_something_else")), []))]
-              )
-            )
-          )
-        , Return(Var(NamespaceID(None(), "y")))
-        ]
-      )
+    , Compound([Exp(DecInt("2"))])
     )
   , FunDef(
       [Int()]
     , Declarator(NoPointer(), FunDeclTyped(IdDecl("main"), ParamList([])))
     , []
     , Compound(
-        [ Decl(
-            [Int()]
-          , [ InitDecl(
-                Declarator(NoPointer(), IdDecl("x"))
-              , Call(Var(NamespaceID(None(), "myfunc")), [DecInt("12")])
-              )
-            ]
-          )
-        ]
+        [Exp(Call(Var(NamespaceID(None(), "foo")), []))]
       )
     )
   ]

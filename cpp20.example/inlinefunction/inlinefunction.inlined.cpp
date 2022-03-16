@@ -1,14 +1,8 @@
-int increment(int x)
+void foo( )
 {
-  return x + 1;
+  return ;
 }
 
 int main( )
 {
-  int x = 5;
-  {
-    int x = 2;
-    x + 1;
-  }
-  x = 6;
 }

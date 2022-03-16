@@ -10,7 +10,7 @@ rules
   inline-function-action(find-call, get-subterms-from-call, get-subterms-from-definition, 
     get-subterms-from-argument, get-term-from-name, make-variable, editor-analyze, pp-debug, 
     insert-block, error-msg-rename | extension): (t, _, ast, path, _) -> (filename, result)
-    with 
+	with
         filename := <guarantee-extension(|extension)> path // Filename to store new program in.
       ; new-ast := <scope-local-new(inline-function(find-call, get-subterms-from-call, get-subterms-from-definition, get-subterms-from-argument, 
                          get-term-from-name, make-variable, editor-analyze, pp-debug, insert-block, error-msg-rename))> (t, ast)
@@ -20,7 +20,7 @@ rules
     get-subterms-from-argument, get-term-from-name, make-variable, editor-analyze, pp-debug, 
     insert-block, error-msg-rename):
     (t, ast) -> ast-result
-    where      
+    where
       // In some languages the call term can be nested in the selected term. Extract it.
       // Note: if you select a full expression, it will select the first call in the expression.
       // Not selecting anything will result in the first call in the program.
@@ -42,6 +42,7 @@ rules
       ; body-annotated1 := <topdown(try(map-referenced-definitions(|analysis, params, refs)))> body
       ; body-annotated2 := <topdown(try(annotate-definitions(|refs)))> body-annotated1
       ; params-annotated1 := <declare-parameters(get-subterms-from-argument, make-variable|refs)> (args, params)
+	  ; ast-annotated := <topdown(try(annotate-definitions(|refs)))> ast
 	  // Now that individual references in the body and parameters have been annotated, add a general annotation to all inlined terms.
       ; annotation1 := <newname> "inlined_"
       ; params-annotated2 := <topdown(add-annotation(|annotation1))> params-annotated1
@@ -50,7 +51,7 @@ rules
       //--- Finished setting up annotations.
       
       // Inline the function definition.
-      ; ast-inlined := <insert-block(|selected, params-annotated2, body-annotated3, type)> ast
+      ; ast-inlined := <insert-block(|selected, params-annotated2, body-annotated3, type)> ast-annotated
             
       // Re-analyze the AST.
       ; <getfirst(?TermIndex(path, _))> <get-annotations> t
@@ -61,9 +62,7 @@ rules
 	  ; <list-loop(try(erronous-inlined-definition(error-msg-rename|to-be-renamed, annotation1)))> analysis-errors // If there are analysis errors with inlined definitions, try renaming them to fix it.
       ; <topdown(check-ref-preservation(|to-be-renamed, new-analysis, annotation1))> ast-reannotated
       ; ast-result := <topdown(try(fix-capture(|to-be-renamed)))> ast-reannotated
-      ; <hashtable-destroy> to-be-renamed      
-  
-    
+      ; <hashtable-destroy> to-be-renamed
   
   // In some languages the Ref() relation returns a list of terms instead of a single term.
   // If this is the case we assume that the first entry in the list is the correct definition.
@@ -89,7 +88,7 @@ rules
   // Creates a list of definition terms for the arguments of the function call.
   declare-parameters(get-subterms-from-argument, make-variable|refs): ([], []) -> []
   declare-parameters(get-subterms-from-argument, make-variable|refs): ([a|args], [p|params]) -> variables
-    with
+    where
         (n, type) := <get-subterms-from-argument> p
       ; name := <oncetd(annotate-definitions(|refs) <+ (is-string ; add-annotation(|<newname> "dref")))> n  // Adds annotation for name binding checks.
       ; variables := [<make-variable> (name, type, a) | <declare-parameters(get-subterms-from-argument, make-variable|refs)> (args, params)]
@@ -124,8 +123,8 @@ rules
     where
 	    <error-msg-rename> error
 	  ; annotations := <get-annotations> term
-	  ; <elem> (a, annotations)
-	  ; if annotation := <fetch-elem(string-starts-with(|"dref"))> annotations 
+	  ; <elem> (a, annotations) // Ensure that it is an inlined term (it contains the annotation a="inlined_x")
+	  ; if annotation := <fetch-elem(string-starts-with(|"dref"))> annotations
 	    then <hashtable-put(|annotation, ())> to-be-renamed
 	    else termindex := <fetch-elem(?TermIndex(_, _))> annotations
 	      ; <hashtable-put(|termindex, ())> to-be-renamed
