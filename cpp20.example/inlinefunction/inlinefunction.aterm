@@ -1,16 +1,26 @@
 TranslationUnit(
   [ FunDef(
       [Void()]
-    , Declarator(NoPointer(), FunDeclTyped(IdDecl("foo"), ParamList([])))
+    , Declarator(
+        NoPointer()
+      , FunDeclTyped(
+          IdDecl("foo")
+        , ParamList(
+            [ParamDecl1([Int()], Declarator(NoPointer(), IdDecl("x")))]
+          )
+        )
+      )
     , []
-    , Compound([Exp(DecInt("2"))])
+    , Compound([Return(NoExp())])
     )
   , FunDef(
       [Int()]
     , Declarator(NoPointer(), FunDeclTyped(IdDecl("main"), ParamList([])))
     , []
     , Compound(
-        [Exp(Call(Var(NamespaceID(None(), "foo")), []))]
+        [Exp(
+           Call(Var(NamespaceID(None(), "foo")), [DecInt("2")])
+         )]
       )
     )
   ]

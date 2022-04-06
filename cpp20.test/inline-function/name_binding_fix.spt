@@ -83,7 +83,7 @@ int main( )
 }
 ]]
 
-test rename duplicate definition when inlined definition is unused [[
+test rename duplicate definition when inlined definition is unused (parameter) [[
 int increment(int x) {
     return 1;
 }
@@ -102,7 +102,34 @@ int increment(int x)
 int main( )
 {
   int x = 5;
-  int x_0 = 2;
+  int x_1 = 2;
+  1;
+  x = 2;
+}
+]]
+
+test rename duplicate definition when inlined definition is unused (explicit definition) [[
+int increment() {
+    int x;
+    return 1;
+}
+
+int main() {
+    int x = 5;
+    [[increment()]];
+    x = 2;
+}
+]] run inline-function-test(|#1) to [[
+int increment()
+{
+  int x;
+  return 1;
+}
+
+int main( )
+{
+  int x = 5;
+  int x_1;
   1;
   x = 2;
 }
@@ -155,8 +182,3 @@ int main( )
   1;
 }
 ]]
-
-// Test: when a parameter is unused in the body it still gets an inlined definition. What if that definition captures a variable?
-
-// Test: when an unused definition in the body is inlined, what happens when that definition captures a variable?
-// (only definitions that get referenced currently receive a unique annotation, which is required for the rename fix of capture.)

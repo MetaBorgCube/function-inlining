@@ -11,7 +11,7 @@ imports
 rules
   inline-function-test(|selected-term): ast -> <inline-function(find-call, get-subterms-from-call, 
     get-subterms-from-definition, get-subterms-from-argument, get-term-from-name, make-variable, 
-    editor-analyze, pp-debug, insert-block, error-msg-rename)> (selected-term, ast)
+    editor-analyze, pp-debug, insert-block, error-msg-rename|<new-iset>)> (selected-term, ast)
   
   inline-function-menu-action = 
     inline-function-action(find-call, get-subterms-from-call, get-subterms-from-definition, 
@@ -28,8 +28,8 @@ rules
   // Therefore the string term holding the name has to be returned.
   // The arguments are required too.
   // If the function is a method we need to do something extra, so that has to be distinguished too.
-  get-subterms-from-call: Call(Var(NamespaceID(None(), name)), args) -> (name, args, ())
-  get-subterms-from-call: Call(Proj(Var(namespace), name), args) -> (name, args, namespace)
+  get-subterms-from-call: Call(Var(NamespaceID(None(), name)), args) -> (name, args)
+  get-subterms-from-call: Call(Proj(Var(namespace), name), args) -> (name, args)
   
   get-subterms-from-definition: FunDef(type, Declarator(_, FunDeclTyped(_, ParamList(params))), _, Compound(body)) -> (params, type, body)
   get-subterms-from-argument: ParamDecl1(type, name) -> (name, type)
