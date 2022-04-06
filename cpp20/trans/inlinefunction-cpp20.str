@@ -11,12 +11,12 @@ imports
 rules
   inline-function-test(|selected-term): ast -> <inline-function(find-call, get-subterms-from-call, 
     get-subterms-from-definition, get-subterms-from-argument, get-term-from-name, make-variable, 
-    editor-analyze, pp-debug, insert-block, error-msg-rename|<new-iset>)> (selected-term, ast)
+    editor-analyze, pp-debug, insert-block, error-fixable-by-rename|<new-iset>)> (selected-term, ast)
   
   inline-function-menu-action = 
     inline-function-action(find-call, get-subterms-from-call, get-subterms-from-definition, 
     get-subterms-from-argument, get-term-from-name, make-variable, editor-analyze, pp-debug, 
-    insert-block, error-msg-rename | "inlined.cpp")
+    insert-block, error-fixable-by-rename | "inlined.cpp")
   
   // The call statement can be nested in constructors like Exp().
   // So we need to traverse the term t and look for a Call() constructor.
@@ -118,5 +118,12 @@ rules
         new-stmt := <oncetd(replace-call(|selected, return-expression))> call-stmt
       ; new-t := Compound(<concat> [block, [new-stmt]])
   
-  error-msg-rename = string-ends-with(|"already defined")
+  // error-fixable-by-rename is intended to succeed on Statix errors that can be fixed by renaming and fail on other errors.
+  // In the case of C++ one of these errors is duplicate definition, causing errors ending in "already defined".
+  // When this error occurs it can be fixed by renaming.
+  // The errors I'm talking about are the errors from a call to <editor-analyze>
+  // which produces AnalysisResult([(_, Full(_, _, errors, _, _))]).
+  error-fixable-by-rename = string-ends-with(|"already defined")
+  
+  
   

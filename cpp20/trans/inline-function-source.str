@@ -9,7 +9,7 @@ imports
 rules  
   inline-function-action(find-call, get-subterms-from-call, get-subterms-from-definition, 
     get-subterms-from-argument, get-term-from-name, make-variable, editor-analyze, pp-debug, 
-    insert-block, error-msg-rename | extension): (t, _, ast, path, _) -> result
+    insert-block, error-fixable-by-rename | extension): (t, _, ast, path, _) -> result
 	with // TODO: Replace with where
         // TODO: Replace filename with name of actual file instead of new file.
         filename := <guarantee-extension(|extension)> path // Filename to store new program in.
@@ -17,13 +17,12 @@ rules
       ;
       (
         (new-ast := <scope-local-new(inline-function(find-call, get-subterms-from-call, get-subterms-from-definition, get-subterms-from-argument, 
-                         get-term-from-name, make-variable, editor-analyze, pp-debug, insert-block, error-msg-rename|inline-errors))> (t, ast)
+                         get-term-from-name, make-variable, editor-analyze, pp-debug, insert-block, error-fixable-by-rename|inline-errors))> (t, ast)
       	; result := (filename, <pp-debug> new-ast))
       <+ 
         <display-errors> inline-errors
         ; result := None() // Errors occurred so don't change the program.
       ) 
-      ; <debug> t
       ; <iset-destroy> inline-errors
       
   display-errors: inline-errors -> () // TODO:
@@ -33,7 +32,7 @@ rules
 
   inline-function(find-call, get-subterms-from-call, get-subterms-from-definition, 
     get-subterms-from-argument, get-term-from-name, make-variable, editor-analyze, pp-debug, 
-    insert-block, error-msg-rename|inline-errors):
+    insert-block, error-fixable-by-rename|inline-errors):
     (t, ast) -> ast-result
     where
       // In some languages the call term can be nested in the selected term. Extract it.
@@ -99,7 +98,7 @@ rules
 	  	   
       // Check if reference annotations have been preserved.
       ; to-be-renamed := <new-hashtable> // Will be used to store unique annotations of inlined terms that need to be renamed.
-	  ; <list-loop(try(erronous-inlined-definition(error-msg-rename|to-be-renamed, annotation1)))> analysis-errors // If there are analysis errors with inlined definitions, try renaming them to fix it.
+	  ; <list-loop(try(erronous-inlined-definition(error-fixable-by-rename|to-be-renamed, annotation1)))> analysis-errors // If there are analysis errors with inlined definitions, try renaming them to fix it.
       ; <topdown(check-ref-preservation(|to-be-renamed, new-analysis, annotation1, inline-errors))> ast-reannotated
       ; if <gt> (<length> <hashtable-keys> to-be-renamed, 0)
         then ast-result := <topdown(fix-capture(|to-be-renamed))> ast-reannotated
@@ -179,9 +178,9 @@ rules
   
   // If an analysis error contains an annotation indicating that it is inlined ("inlined_x"),
   // store it for renaming.
-  erronous-inlined-definition(error-msg-rename|to-be-renamed, a): (term, error) -> ()
+  erronous-inlined-definition(error-fixable-by-rename|to-be-renamed, a): (term, error) -> ()
     where
-	    <error-msg-rename> error
+	    <error-fixable-by-rename> error
 	  ; annotations := <get-annotations> term
 	  ; <elem> (a, annotations) // Ensure that it is an inlined term (it contains the annotation a="inlined_x")
 	  ; if annotation := <fetch-elem(string-starts-with(|"dref"))> annotations
