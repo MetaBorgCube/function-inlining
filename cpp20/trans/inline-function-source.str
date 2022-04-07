@@ -8,78 +8,112 @@ imports
 
 rules  
   inline-function-action(find-call, get-subterms-from-call, get-subterms-from-definition, 
-  						 get-subterms-from-argument, get-term-from-name, make-variable, is-void, 
-  						 extract-return, construct-block, is-statement, wrap-block, editor-analyze, pp-debug):
-    (t, _, ast, path, _) -> (filename, result)
-    with 
-        filename := <guarantee-extension(|"inlined.cpp")> path // Filename to store new program in.
-      ; new-ast := <inline-function(find-call, get-subterms-from-call, get-subterms-from-definition, get-subterms-from-argument, 
-                         get-term-from-name, make-variable, is-void, extract-return, construct-block, is-statement, wrap-block,
-                         editor-analyze, pp-debug)> (t, ast, path)
-      ; result := <pp-debug> new-ast
-
-  inline-function(find-call, get-subterms-from-call, get-subterms-from-definition, get-subterms-from-argument, 
-                         get-term-from-name, make-variable, is-void, extract-return, construct-block, 
-                         is-statement, wrap-block, editor-analyze, pp-debug):
-    (t, ast, path) -> ast-reannotated
+    get-subterms-from-argument, get-term-from-name, make-variable, editor-analyze, pp-debug, 
+    insert-block, error-fixable-by-rename | extension): (t, _, ast, path, _) -> result
+	with // TODO: Replace with where
+        // TODO: Replace filename with name of actual file instead of new file.
+        filename := <guarantee-extension(|extension)> path // Filename to store new program in.
+      ; inline-errors := <new-iset>
+      ;
+      (
+        (new-ast := <scope-local-new(inline-function(find-call, get-subterms-from-call, get-subterms-from-definition, get-subterms-from-argument, 
+                         get-term-from-name, make-variable, editor-analyze, pp-debug, insert-block, error-fixable-by-rename|inline-errors))> (t, ast)
+      	; result := (filename, <pp-debug> new-ast))
+      <+ 
+        <display-errors> inline-errors
+        ; result := None() // Errors occurred so don't change the program.
+      ) 
+      ; <iset-destroy> inline-errors
+      
+  display-errors: inline-errors -> () // TODO:
     with
-      // In some languages the call term can be nested in the selected term. Extract it. 
-	    selected := <find-call> t
+       all-error-strings := <concat-strings> <iset-elements> inline-errors
+     ; <show-dialog(|"Inline Function Error", "Error")> all-error-strings
+
+  inline-function(find-call, get-subterms-from-call, get-subterms-from-definition, 
+    get-subterms-from-argument, get-term-from-name, make-variable, editor-analyze, pp-debug, 
+    insert-block, error-fixable-by-rename|inline-errors):
+    (t, ast) -> ast-result
+    where
+      // In some languages the call term can be nested in the selected term. Extract it.
+      // Note: if you select a full expression, it will select the first call in the expression.
+      // Not selecting anything will result in the first call in the program.
+	    (selected := <find-call> t
+	      <+ (<iset-add(|<concat-strings> 
+	        ["> ERROR: Couldn't find a Call term in the selected term:\n",
+	        "    ", <write-to-string> <strip-annos> t,
+	        "\n\n"]
+          )> inline-errors ; fail)
+        )
 
       // Get the scope graph.
-      ; analysis := <stx-get-ast-analysis> selected 
+      ; analysis := <stx-get-ast-analysis> selected
       
       // Extract the name- and the argument subterms from the function call term.
-      ; (function-name, args) := <get-subterms-from-call> selected
-      
+      ; ((function-name, args) := <get-subterms-from-call> selected
+	      // This error only occurs if a valid Call term pattern is not covered by the get-subterms-from-call definition(s).
+	      <+ (<iset-add(|<concat-strings>
+	        ["> ERROR: Couldn't find function-name or arguments subterm in the call term:\n",
+	        "    ", <write-to-string> <strip-annos> selected,
+	        "\n\n"]
+          )> inline-errors ; fail)
+        )
+            
       // Find and extract the function definition.
-      ; definition-name := <get-ref-helper> (<stx-get-ast-ref(|analysis)> function-name) // Get definition name term from Ref().
-      ; definition-term := <collect-one(get-term-from-name(|definition-name))> ast // Get encapsulating definition term.
-      ; (params, type, body) := <get-subterms-from-definition> definition-term // Extract required subterms.
-      
-      // Set up reference annotations.
-      ; refs := <new-hashtable> // Maps definition terms to an annotation they are meant to receive. Can be updated dynamically.
-      ; body-annotated := <topdown(try(annotate-definition(|refs)))> (<topdown(try(get-ref-relation(|analysis, params, refs)))> body)
-      ; new-vars := <declare-parameters(get-subterms-from-argument, make-variable|refs)> (args, params) // Define variables for arguments.
-      ; ast-annotated := <topdown(try(annotate-definition(|refs)))> ast
+      ; ((definition-name := <get-ref-helper> (<stx-get-ast-ref(|analysis)> function-name) // Get definition name term from Ref().
+          ; definition-term := <collect-one(get-term-from-name(|definition-name))> ast) // Get encapsulating definition term.
+          <+ (<iset-add(|<concat-strings>
+	        ["> ERROR: Couldn't find function definition of:\n",
+	        "    ", <write-to-string> <strip-annos> function-name,
+	        "\n\n"]
+          )> inline-errors ; fail)
+        )
+      ; ((params, type, body) := <get-subterms-from-definition> definition-term // Extract required subterms.
+          <+ (<iset-add(|<concat-strings> 
+	        ["> ERROR: Couldn't find parameters, type or body in function definition term:\n",
+	        "    ", <write-to-string> <strip-annos> definition-term,
+	        "\n\n"]
+          )> inline-errors ; fail)
+        )
+      //--- Set up annotations for name binding check at the end.
+      ; refs := <new-hashtable> // Maps definition terms to corresponding unique annotation.
+      ; body-annotated1 := <topdown(try(map-referenced-definitions(|analysis, params, refs)))> body
+      ; body-annotated2 := <topdown(try(annotate-definitions(|refs)))> body-annotated1
+      ; params-annotated1 := <declare-parameters(get-subterms-from-argument, make-variable|refs, inline-errors)> (args, params)
+	  ; ast-annotated := <topdown(try(annotate-definitions(|refs)))> ast
+	  // Now that individual references in the body and parameters have been annotated, add a general annotation to all inlined terms.
+      ; annotation1 := <newname> "inlined_"
+      ; params-annotated2 := <topdown(add-annotation(|annotation1))> params-annotated1
+      ; body-annotated3 := <topdown(add-annotation(|annotation1))> body-annotated2
       ; <hashtable-destroy> refs
-
+      //--- Finished setting up annotations.
       
-      // Construct the new body (removing the return statements and a few other changes).
-      ; (new-body, last-statement) := <split-init-last> body-annotated // The last statement should replace the call expression.
-      ; if <is-void> type // In case the function doesn't return a value, the last statement isn't necessarily a return statement.
-          then return-expression := <extract-return <+ id> last-statement
-          else return-expression := <extract-return> last-statement
-          end
-      ; <lt> (<occurrences(extract-return)> new-body, 1) // Ensure that there are no return statements left.
+      // Inline the function definition.
+      ; (ast-inlined := <insert-block(|selected, params-annotated2, body-annotated3, type)> ast-annotated
+        <+ (<iset-add(|"> ERROR: Something went wrong while inserting the function body.\n\n")> inline-errors ; fail))
       
-      
-      ; new-block := <construct-block> (new-vars, new-body)
-      
-      ; call-stmt := <find-surrounding-stmt(is-statement|ast-annotated, selected)> ast-annotated
-      
-      // Insert the code block.
-      ; if <oncetd(?[_|_]; one(?call-stmt))> ast-annotated // Checks if the statement that contains the call is part of a list of statements
-          // If the statement containing the call is part of a list of statements, simply insert the code block above it.
-          then ast-inlined := <oncetd(find-and-replace(|call-stmt, selected, return-expression, new-block))> ast-annotated
-          // If the statement containing the call is NOT part of a list of statements, replace it with a list of statements.
-          else ast-inlined := <oncetd(find-and-replace-single-statement(construct-block, wrap-block|call-stmt, selected, return-expression, new-block))> ast-annotated
-          end
-      
-      // Re-analyze the AST.      
-      ; ([(_, ast-reannotated)], new-analysis) := <rerun-analysis-single(editor-analyze)> [(path, (), ast-inlined)]
-      
+      // Re-analyze the AST.
+      ; <getfirst(?TermIndex(path, _))> <get-annotations> t
+      ; Full(ast-reannotated, FileAnalysis(_, new-analysis), analysis-errors, _, _) := <re-analyze-ast-single(editor-analyze|path, analysis, inline-errors)> ast-inlined
+	  	   
       // Check if reference annotations have been preserved.
-      ; <topdown(check-ref-preservation(|new-analysis))> ast-reannotated
-  
-    
+      ; to-be-renamed := <new-hashtable> // Will be used to store unique annotations of inlined terms that need to be renamed.
+	  ; <list-loop(try(erronous-inlined-definition(error-fixable-by-rename|to-be-renamed, annotation1)))> analysis-errors // If there are analysis errors with inlined definitions, try renaming them to fix it.
+      ; <topdown(check-ref-preservation(|to-be-renamed, new-analysis, annotation1, inline-errors))> ast-reannotated
+      ; if <gt> (<length> <hashtable-keys> to-be-renamed, 0)
+        then ast-result := <topdown(fix-capture(|to-be-renamed))> ast-reannotated
+        else ast-result := ast-reannotated
+        end
+      ; <hashtable-destroy> to-be-renamed
   
   // In some languages the Ref() relation returns a list of terms instead of a single term.
   // If this is the case we assume that the first entry in the list is the correct definition.
   get-ref-helper: [t|_] -> t
   get-ref-helper: t -> t
-  
-  get-ref-relation(|analysis, params, refs): t -> <add-annotation> (t, annotation)
+
+  add-annotation(|annotation): t -> <set-annotations> (t, <concat> [<get-annotations> t, [annotation]])
+ 
+  map-referenced-definitions(|analysis, params, refs): t -> <add-annotation(|annotation)> t
     where
         definition := <get-ref-helper> (<stx-get-ast-ref(|analysis)> t)
       ; if not(annotation := <hashtable-get(|definition)> refs)
@@ -87,60 +121,96 @@ rules
              ; <hashtable-put(|definition, annotation)> refs
           end
   
-  annotate-definition(|refs): t -> <add-annotation> (t, annotation)
+  annotate-definitions(|refs): t -> <add-annotation(|<conc-strings> ("d", annotation))> t
     where
         annotation := <hashtable-get(|t)> refs
       ; <hashtable-remove(|t)> refs
-  
-  add-annotation: (t, annotation) -> <set-annotations> (t, <concat> [<get-annotations> t, [annotation]])
-  
-  check-ref-preservation(|analysis): t -> t
-    where
-      if annotation := <fetch-elem(string-starts-with(|"ref"))> (<get-annotations> t)
-       ; definition := <get-ref-helper> (<stx-get-ast-ref(|analysis)> t)
-        then <elem> (annotation, <get-annotations> definition)
-        end
-  
+
   
   // Creates a list of definition terms for the arguments of the function call.
-  declare-parameters(get-subterms-from-argument, make-variable|refs): ([], []) -> []
-  declare-parameters(get-subterms-from-argument, make-variable|refs): ([a|args], [p|params]) -> variables
-    with
+  declare-parameters(get-subterms-from-argument, make-variable|refs, inline-errors): ([], []) -> []
+  declare-parameters(get-subterms-from-argument, make-variable|refs, inline-errors): ([a|args], [p|params]) -> variables
+    where
         (n, type) := <get-subterms-from-argument> p
-      ; name := <oncetd(annotate-definition(|refs)) <+ id> n
-      ; variables := [<make-variable> (name, type, a) | <declare-parameters(get-subterms-from-argument, make-variable|refs)> (args, params)]
+      ; name := <oncetd(annotate-definitions(|refs)) <+ id> n  // Adds annotation for name binding checks.
+      ; variables := [<make-variable> (name, type, a) | <declare-parameters(get-subterms-from-argument, make-variable|refs, inline-errors)> (args, params)]
+      <+ (<iset-add(|<concat-strings>
+	      ["> ERROR: Couldn't create variable definition for parameter-argument:\n",
+	      "    argument:\t", <write-to-string> <strip-annos> a, "\n",
+	      "    parameter:\t", <write-to-string> <strip-annos> p, "\n",
+	      "\n\n"]
+        )> inline-errors ; fail)
 
-
-
-  find-surrounding-stmt(is-statement|call-stmt, selected): selected -> call-stmt
-  
-  find-surrounding-stmt(is-statement|call-stmt, selected): t -> result
+  re-analyze-ast-single(editor-analyze|path, old-analysis, inline-errors): ast -> result
     where
-      <is-statement> t
-      ; <one(find-surrounding-stmt(is-statement|t, selected); ?result)> t
+        input := AnalyzeSingle([(path, Changed(ast, old-analysis))], (), ())
+      ; AnalysisResult([(_, result)]) := <editor-analyze> input
+      <+ (<iset-add(|<concat-strings>
+	      ["> ERROR: Something went wrong while analyzing the changed AST:\n",
+	      "    ", <write-to-string> ast,
+	      "\n\n"]
+	    )> inline-errors; fail)
   
-  find-surrounding-stmt(is-statement|call-stmt, selected): t -> result
+  check-ref-preservation(|to-be-renamed, analysis, annotation, inline-errors): t -> t
     where
-      <one(find-surrounding-stmt(is-statement|call-stmt, selected); ?result)> t
+      // If the term references an inlined definition, the term itself should be inlined too (marked with 'annotation').
+        if definition-name := <get-ref-helper> (<stx-get-ast-ref(|analysis)> t)
+          ; <elem> (annotation, <get-annotations> definition-name)
+        then (<elem> (annotation, <get-annotations> t)
+          // If the current term is NOT inlined, we store the annotation/termindex of the referenced definition for renaming.
+            <+ (annotation2 := <fetch-elem(string-starts-with(|"dref")) <+ fetch-elem(?TermIndex(_, _))> (<get-annotations> definition-name)
+              ; <hashtable-put(|annotation2, <local-newname> t)> to-be-renamed)
+          )
+        end
+      // If the term has an annotation starting with "ref" (which should only be the case for inlined terms), 
+      // then the referenced term should have the corresponding "dref" annotation.
+      // (meaning the correct definition is referenced)
+      ; if annotation3 := <fetch-elem(string-starts-with(|"ref"))> (<get-annotations> t)
+        then definition-name := <get-ref-helper> (<stx-get-ast-ref(|analysis)> t) 
+           ; <elem> (<string-replace(|"ref", "dref")> annotation3, <get-annotations> definition-name)
+          <+ (<iset-add(|<concat-strings>
+	        ["> ERROR: A term from the function definition does not reference the correct term:\n",
+	        "    term: ", <write-to-string> t, "\n",
+	        "    referenced definition: ", <write-to-string> definition-name,
+	        "\n\n"]
+	      )> inline-errors; fail)
+        end
   
-  
-  
-    // Looks for the list of statements that contains the statement with the function call.
-  // It inserts the new code block above said statement and replaces the call expression in said statement.
-  find-and-replace(|call-stmt, selected, return-expression, block): t -> new-t
+  // If an analysis error contains an annotation indicating that it is inlined ("inlined_x"),
+  // store it for renaming.
+  erronous-inlined-definition(error-fixable-by-rename|to-be-renamed, a): (term, error) -> ()
     where
-        <one(?call-stmt)> t
-      ; (before, call-stmt, after) := <split-fetch-keep(?call-stmt)> t
-      ; new-call-stmt := <oncetd(replace-call(|selected, return-expression))> call-stmt
-      ; new-t := <concat> [before, block, [new-call-stmt], after]
-        
-  replace-call(|selected, return-expression): selected -> return-expression
+	    <error-fixable-by-rename> error
+	  ; annotations := <get-annotations> term
+	  ; <elem> (a, annotations) // Ensure that it is an inlined term (it contains the annotation a="inlined_x")
+	  ; if annotation := <fetch-elem(string-starts-with(|"dref"))> annotations
+	    then <hashtable-put(|annotation, ())> to-be-renamed
+	    else termindex := <fetch-elem(?TermIndex(_, _))> annotations
+	      ; <hashtable-put(|termindex, ())> to-be-renamed
+	    end
   
-  
-  find-and-replace-single-statement(construct-block, wrap-block|call-stmt, selected, return-expression, block): call-stmt -> new-t
+  // Renames all terms whose annotation has been marked to be renamed.
+  fix-capture(|to-be-renamed): t -> new-t
     where
-        new-stmt := <oncetd(replace-call(|selected, return-expression))> call-stmt
-      ; new-t := <wrap-block> (<construct-block> (block, [new-stmt]))
+        annotations := <get-annotations> t
+      // Check if the current term has a "dref"/"ref" annotation.
+      ; if (annotation := <fetch-elem(string-starts-with(|"dref"))> annotations
+          <+ annotation := <conc-strings> ("d", <fetch-elem(string-starts-with(|"ref"))> annotations))
+        // Check if the term should be renamed (then the annotation is in the hashtable). 
+        ; new-name := <hashtable-get(|annotation)> to-be-renamed
+          // Check if a replacement name has been created yet. If not, create and store a new one.
+        then if <is-string> new-name
+          then new-t := new-name
+          else new-t := <local-newname> t
+            ; <hashtable-put(|annotation, new-t)> to-be-renamed
+          end
+        // Check if the termindex is stored for renaming
+        else if termindex := <fetch-elem(?TermIndex(_, _))> annotations
+            ; <hashtable-get(|termindex)> to-be-renamed
+          then new-t := <local-newname> t // When the termindex is stored, the new term name has not been generated yet. It also means no other term should reference this term, so we can freely generate a new name for it.
+          else new-t := t
+          end
+        end
   
   
   

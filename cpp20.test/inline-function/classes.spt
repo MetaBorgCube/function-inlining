@@ -1,0 +1,91 @@
+module inline-function/classes
+
+language cpp20
+
+test simple method call no arguments [[
+class MyClass {
+	public:
+		int foo() {
+    		return 1;
+		}
+};
+
+int main() {
+    MyClass bar;
+    [[bar.foo()]];
+}
+]] run inline-function-test(|#1) to [[
+class MyClass {
+  public :
+    int foo( )
+    {
+      return 1;
+    }
+} ;
+
+int main( )
+{
+  MyClass bar;
+  1;
+}
+]]
+
+test simple method call with arguments [[
+class MyClass {
+	public:
+		int add(int x, int y) {
+    		return x + y;
+		}
+};
+
+int main() {
+    MyClass bar;
+    [[bar.add(2, 3)]];
+}
+]] run inline-function-test(|#1) to [[
+class MyClass {
+	public:
+		int add(int x, int y) {
+    		return x + y;
+		}
+};
+
+int main() {
+    MyClass bar;
+    int x = 2;
+    int y = 3;
+    x + y;
+}
+]]
+
+// Correctly referencing attributes/methods from outside of a class is not implemented yet.
+//
+//test simple reference to public attribute inlined outside of class [[
+//class MyClass {
+//	public:
+//		int x = 2;
+//		int get_x() {
+//    		return x;
+//		}
+//};
+//
+//int main() {
+//    MyClass bar;
+//    [[bar.get_x()]];
+//}
+//]] run inline-function-test(|#1) to [[
+//class MyClass {
+//  public :
+//    int x = 2; 
+//    int get_x( )
+//    {
+//      return x;
+//    }
+//} ;
+//
+//int main( )
+//{
+//  MyClass bar;
+//  x;
+//}
+//]]

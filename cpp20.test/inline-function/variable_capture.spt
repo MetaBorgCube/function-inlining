@@ -1,3 +1,0 @@
-module inline-function/variable_capture
-
-language cpp20

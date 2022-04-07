@@ -1,61 +1,26 @@
 TranslationUnit(
-  [ Decl(
-      [ ClassType(
-          Class()
-        , "MyClass"
-        , ClassBody(
-            ClassBodyDeclarationDefault([])
-          , [ ClassBodyDeclaration(
-                Public()
-              , [ Decl([Int()], [Declarator(NoPointer(), IdDecl("myvar"))])
-                , FunDef(
-                    [Void()]
-                  , Declarator(NoPointer(), FunDeclTyped(IdDecl("hello"), ParamList([])))
-                  , []
-                  , Compound(
-                      [Exp(
-                         Assign(Var(NamespaceID(None(), "myvar")), AssignNorm(), DecInt("5"))
-                       )]
-                    )
-                  )
-                ]
-              )
-            ]
-          )
-        )
-      ]
-    , []
-    )
-  , FunDef(
-      [Int()]
+  [ FunDef(
+      [Void()]
     , Declarator(
         NoPointer()
       , FunDeclTyped(
-          IdDecl("increment")
+          IdDecl("foo")
         , ParamList(
             [ParamDecl1([Int()], Declarator(NoPointer(), IdDecl("x")))]
           )
         )
       )
     , []
-    , Compound(
-        [Return(Add(Var(NamespaceID(None(), "x")), DecInt("1")))]
-      )
+    , Compound([Return(NoExp())])
     )
   , FunDef(
       [Int()]
     , Declarator(NoPointer(), FunDeclTyped(IdDecl("main"), ParamList([])))
     , []
     , Compound(
-        [ Decl([Int()], [Declarator(NoPointer(), IdDecl("y"))])
-        , Exp(
-            Assign(
-              Var(NamespaceID(None(), "y"))
-            , AssignNorm()
-            , Call(Var(NamespaceID(None(), "increment")), [DecInt("2")])
-            )
-          )
-        ]
+        [Exp(
+           Call(Var(NamespaceID(None(), "foo")), [DecInt("2")])
+         )]
       )
     )
   ]

@@ -1,0 +1,184 @@
+module inline-function/name_binding_fix
+
+language cpp20
+
+/*
+Tests the rename fix for conflicting inlined definitions
+*/
+
+test reference to term outside of function definition [[
+int y = 5;
+
+int foo(int x) {
+    return x + y;
+}
+
+int main() {
+    int x = 5;
+    [[foo(2)]];
+    x = 6;
+}
+]] run inline-function-test(|#1) to [[
+int y = 5;
+
+int foo(int x)
+{
+  return x + y;
+}
+
+int main( )
+{
+  int x = 5;
+  int x_0 = 2;
+  x_0 + y;
+  x = 6;
+}
+]]
+
+test rename duplicate definition when both are used [[
+int increment(int x) {
+    return x + 1;
+}
+
+int main() {
+    int x = 5;
+    [[increment(2)]];
+    x = 6;
+}
+]] run inline-function-test(|#1) to [[
+int increment(int x)
+{
+  return x + 1;
+}
+
+int main( )
+{
+  int x = 5;
+  int x_0 = 2;
+  x_0 + 1;
+  x = 6;
+}
+]]
+
+test rename duplicate definition when original definition is unused [[
+int increment(int x) {
+    return x + 1;
+}
+
+int main() {
+    int x = 5;
+    [[increment(2)]];
+}
+]] run inline-function-test(|#1) to [[
+int increment(int x)
+{
+  return x + 1;
+}
+
+int main( )
+{
+  int x = 5;
+  int x_0 = 2;
+  x_0 + 1;
+}
+]]
+
+test rename duplicate definition when inlined definition is unused (parameter) [[
+int increment(int x) {
+    return 1;
+}
+
+int main() {
+    int x = 5;
+    [[increment(2)]];
+    x = 2;
+}
+]] run inline-function-test(|#1) to [[
+int increment(int x)
+{
+  return 1;
+}
+
+int main( )
+{
+  int x = 5;
+  int x_1 = 2;
+  1;
+  x = 2;
+}
+]]
+
+test rename duplicate definition when inlined definition is unused (explicit definition) [[
+int increment() {
+    int x;
+    return 1;
+}
+
+int main() {
+    int x = 5;
+    [[increment()]];
+    x = 2;
+}
+]] run inline-function-test(|#1) to [[
+int increment()
+{
+  int x;
+  return 1;
+}
+
+int main( )
+{
+  int x = 5;
+  int x_1;
+  1;
+  x = 2;
+}
+]]
+
+test rename duplicate definition when both are unused (parameter) [[
+int increment(int x) {
+    return 1;
+}
+
+int main() {
+    int x = 5;
+    [[increment(2)]];
+}
+]] run inline-function-test(|#1) to [[
+int increment(int x)
+{
+  return 1;
+}
+
+int main( )
+{
+  int x = 5;
+  int x_0 = 2;
+  1;
+}
+]]
+
+test rename duplicate definition when both are unused (explicit definition) [[
+int increment() {
+	int x;
+    return 1;
+}
+
+int main() {
+    int x = 5;
+    [[increment()]];
+}
+]] run inline-function-test(|#1) to [[
+int increment()
+{
+  int x;
+  return 1;
+}
+
+int main( )
+{
+  int x = 5;
+  int x_0;
+  1;
+}
+]]

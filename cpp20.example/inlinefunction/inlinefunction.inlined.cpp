@@ -1,15 +1,23 @@
-int increment(int y)
+class MyClass {
+  private :
+    int x = 5; public :
+    int myfunc( )
+    {
+      return x;
+    }
+} ;
+
+int increment(int x)
 {
-  int z = 5;
-  z;
-  return y + 1;
+  return 1;
 }
 
 int main( )
 {
-  int a;
-  int y = 2;
-  int z = 5;
-  z;
-  a = y + 1;
+  int x = 5;
+  int x_1 = 2;
+  1;
+  MyClass test;
+  test.myfunc( );
+  x = 2;
 }

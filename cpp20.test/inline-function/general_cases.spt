@@ -10,7 +10,6 @@ int increment(int x) {
 }
 
 int main() {
-    
     [[increment(2)]];
 }
 ]] run inline-function-test(|#1) to [[
@@ -26,13 +25,12 @@ int main( )
 }
 ]]
 
-test one statement two function calls 1 [[
+test one statement two function calls inline right [[
 int increment(int x) {
     return x + 1;
 }
 
 int main() {
-    
     increment(2) + [[increment(2)]];
 }
 ]] run inline-function-test(|#1) to [[
@@ -48,7 +46,7 @@ int main( )
 }
 ]]
 
-test one statement two function calls 2 [[
+test one statement two function calls inline left [[
 int increment(int x) {
     return x + 1;
 }
