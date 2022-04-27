@@ -1,0 +1,143 @@
+module analysis/templates
+
+imports
+  signatures/cpp-templates-sig
+  signatures/c-syntax-sig
+  analysis/declarations
+  analysis/types
+  analysis/expressions
+  analysis/statements
+
+rules
+
+  templateDeclOk : scope * TemplateDeclaration
+  templateParamOk : scope * TemplateParameter
+  templateParamsOk maps templateParamOk(*, list(*))
+  
+  templateDeclOk(s, TemplateFunDef(params, c, def)) :- {T id s_test}
+    TEMPLATE(s, params, def, c) == T,
+    getFunDefId(def) == id,
+    templateParamsOk(s, params),
+    defineFun(s, id, T),
+    new s_test,
+    s_test-P->s,
+    resolveTemplatePlaceholderParams(s_test, params),
+    funDefOk(s_test, def),
+    templateConstraintsOk(s_test, c).
+
+  templateParamOk(_, _).  // TODO: Verify template parameters
+  
+  templateDeclOk(s, TemplateConcept(params, id, c)) :- {T s_test}
+    CONCEPT(s, params, c) == T,
+    templateParamsOk(s, params),
+    declareVar(s, id, T),  // TODO: I shouldn't convert a TypeID to a normal ID, change this in the future
+    new s_test,
+    s_test-P->s,
+    resolveTemplatePlaceholderParams(s_test, params),
+    requiresClauseOk(s_test, c).
+
+rules
+
+  typeOfTemplate : scope * TYPE * Exp -> TYPE
+
+  typeOfTemplate(s, TEMPLATE(s_def, params, def, c), templ@Template(e, vals)) = T :- {s_call s_fun id}
+    new s_fun,
+    s_fun-P->s_def,
+    resolveTemplateParams(s, s_fun, params, vals),
+    funDefOk(s_fun, def) | error $[Template incompatible with parameters]@templ,
+    getFunDefId(def) == id,
+    typeOfFun(s_fun, NamespaceID([], id)) == T,
+    templateConstraintsOk(s_fun, c) | error $[Parameters do not fullfil constraints]@templ.
+
+  resolveTemplateParams : scope * scope * list(TemplateParameter) * list(TemplateValue)
+  resolveTemplateParam  : scope * scope * TemplateParameter * TemplateValue
+  resolveTemplateParams(s_call, s_fun, [a|l1], [b|l2]) :-
+    resolveTemplateParam(s_call, s_fun, a, b),
+    resolveTemplateParams(s_call, s_fun, l1, l2).
+
+  resolveTemplateParams(_, _, [], []).
+  resolveTemplateParams(_, _, [_|_], l@[]) :-
+    false | error $[Mismatched template parameter count]@l.
+  resolveTemplateParams(_, _, [], [x|_]) :-
+    false | error $[Mismatched template parameter count]@x.
+
+  resolveTemplateParam(s_call, s_fun, ClassParameter1(id), TemplateTypeValue(t)) :- {T}
+    typeOfTypeName(s_call, t) == T,
+    declareTypedef(s_fun, id, T).
+
+  resolveTemplateParam(s_call, s_fun, ValueParameter(t, id), TemplateConstValue(v)) :- {T Tv}
+    typeOfTypeName(s_fun, t) == T,
+    typeOfExp(s_call, v) == Tv,
+    try { T == Tv } | error $[Expected type [T], got [Tv]]@v,
+    declareVar(s_fun, id, T).
+
+  resolveTemplateParam(_, _, ClassParameter1(id), v@TemplateConstValue(_)) :-
+    false | error $[Expected a type parameter]@v.
+
+  resolveTemplateParam(_, _, ValueParameter(t, id), v@TemplateTypeValue(_)) :-
+    false | error $[Expected a parameter of type [t]]@v.
+
+  resolveTemplateParam(s_call, s_fun, ClassParameter2(id), val) :-
+    resolveTemplateParam(s_call, s_fun, ClassParameter1(id), val).
+
+  resolveTemplatePlaceholderParam : scope * TemplateParameter
+  resolveTemplatePlaceholderParams maps resolveTemplatePlaceholderParam(*, list(*))
+  
+  resolveTemplatePlaceholderParam(s, ClassParameter1(id)) :-
+    declareTypedef(s, id, TEMPLATEPLACEHOLDER()).
+  
+  resolveTemplatePlaceholderParam(s, ValueParameter(t, id)) :- {T}
+    typeOfTypeName(s, t) == T,
+    declareVar(s, id, T).
+
+  resolveTemplatePlaceholderParam(s, ClassParameter2(id)) :-
+    resolveTemplatePlaceholderParam(s, ClassParameter1(id)).
+
+rules
+
+  getFunDefId : FunctionDefinition -> ID
+
+  getFunDefId(FunDef(_, Declarator(_, FunDeclTyped(IdDecl(id), _)), _, _)) = id.
+
+  typeOfTypeName : scope * TypeName -> TYPE
+
+  typeOfTypeName(s, TypedefName2(ts, NoAbstractDeclarator())) = T :- {declSpecs typeSpecs}
+    specQualsToDeclSpecs(ts) == declSpecs,  // Type resolving copied from the cast operator, unsure about how it works
+    declSpecsToTypeSpecs(declSpecs) == typeSpecs,
+    typeOfType(s, typeSpecs) == T.
+
+  typeOfTypeName(s, TypedefName2(ts, AbstractDeclarator2AbstractDeclarator-OPT(a))) = T :- {declSpecs typeSpecs T1}
+    specQualsToDeclSpecs(ts) == declSpecs,
+    declSpecsToTypeSpecs(declSpecs) == typeSpecs,
+    typeOfType(s, typeSpecs) == T1,
+    typeOfAbsDecl(s, T1, a) == T.
+
+rules
+
+  templateConstraintsOk : scope * TemplateConstraints 
+  
+  templateConstraintsOk(s, Constraints(c)) :-
+    requiresClauseOk(s, c).
+  templateConstraintsOk(s, NoConstraints()).
+  
+  requiresClauseOk : scope * RequiresClause
+  
+  requiresClauseOk(s, RequiresExp(ParamList(params), compStmt)) :- {s_test fundef paramIDs paramTs}
+    new s_test, // A requires(...) {...} expression is handled similar to a function definition
+    s_test-P->s,
+    paramsOk(s_test, params) == (paramIDs, paramTs),
+    declareVars(s_test, paramIDs, paramTs),
+    compStmtOk(s_test, compStmt).
+  requiresClauseOk(s, RequiresNormalExp(e)) :-
+    typeOfExp(s, e) == _.  // TODO: try to verify that this is a compile time constant?
+  requiresClauseOk(s, RequiresConcept(NamespaceTypeID(ns, id), vals)) :- {s_def s_concept params c}
+    typeOfVar(s, NamespaceID(ns, id)) == CONCEPT(s_def, params, c),
+    new s_concept,
+    s_concept-P->s_def,
+    resolveTemplateParams(s, s_concept, params, vals),
+    requiresClauseOk(s_concept, c).
+  requiresClauseOk(s, RequireDisjunction(c1, c2)) :-
+    requiresClauseOk(s, c1),
+    requiresClauseOk(s, c2).
+  requiresClauseOk(s, r@RequireConjunction(c1, c2)) :-
+    try { false } | warning $[Requirement conjunction (||) is not supported]@r.

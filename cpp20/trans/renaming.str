@@ -2,7 +2,7 @@ module renaming
 
 imports
   statixruntime
-  statix/runtime/renaming
+  testing-rename
 
   pp
   analysis

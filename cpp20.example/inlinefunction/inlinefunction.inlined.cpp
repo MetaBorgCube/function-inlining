@@ -15,9 +15,6 @@ int increment(int x)
 int main( )
 {
   int x = 5;
-  int x_1 = 2;
+  int x_0 = 2;
   1;
-  MyClass test;
-  test.myfunc( );
-  x = 2;
 }
