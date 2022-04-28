@@ -52,11 +52,21 @@ TranslationUnit(
             [Int(){TermIndex("inlinefunction/inlinefunction.cpp", 136)}]{TermIndex("inlinefunction/inlinefunction.cpp", 140)}
           , [InitDecl(Declarator(NoPointer(){TermIndex("inlinefunction/inlinefunction.cpp", 141)}, IdDecl("x"{TermIndex("inlinefunction/inlinefunction.cpp", 142)}){TermIndex("inlinefunction/inlinefunction.cpp", 143)}){TermIndex("inlinefunction/inlinefunction.cpp", 144)}, DecInt("5"{TermIndex("inlinefunction/inlinefunction.cpp", 145)}){TermIndex("inlinefunction/inlinefunction.cpp", 146)}){TermIndex("inlinefunction/inlinefunction.cpp", 151)}]{TermIndex("inlinefunction/inlinefunction.cpp", 154)}
           ){TermIndex("inlinefunction/inlinefunction.cpp", 155)}
-        , Exp(
-            Call(Var(NamespaceID(None(){TermIndex("inlinefunction/inlinefunction.cpp", 158)}, "increment"{TermIndex("inlinefunction/inlinefunction.cpp", 159)}){TermIndex("inlinefunction/inlinefunction.cpp", 160)}){TermIndex("inlinefunction/inlinefunction.cpp", 161)}, [DecInt("2"{TermIndex("inlinefunction/inlinefunction.cpp", 162)}){TermIndex("inlinefunction/inlinefunction.cpp", 163)}]{TermIndex("inlinefunction/inlinefunction.cpp", 168)}){TermIndex("inlinefunction/inlinefunction.cpp", 169)}
-          ){TermIndex("inlinefunction/inlinefunction.cpp", 170)}
-        ]{TermIndex("inlinefunction/inlinefunction.cpp", 175)}
-      ){TermIndex("inlinefunction/inlinefunction.cpp", 176)}
-    ){TermIndex("inlinefunction/inlinefunction.cpp", 177)}
-  ]{TermIndex("inlinefunction/inlinefunction.cpp", 183)}
-){TermIndex("inlinefunction/inlinefunction.cpp", 184)}
+        , Compound(
+            [ Decl(
+                [Int(){TermIndex("inlinefunction/inlinefunction.cpp", 157)}]{TermIndex("inlinefunction/inlinefunction.cpp", 161)}
+              , [InitDecl(Declarator(NoPointer(){TermIndex("inlinefunction/inlinefunction.cpp", 162)}, IdDecl("y"{TermIndex("inlinefunction/inlinefunction.cpp", 163)}){TermIndex("inlinefunction/inlinefunction.cpp", 164)}){TermIndex("inlinefunction/inlinefunction.cpp", 165)}, DecInt("6"{TermIndex("inlinefunction/inlinefunction.cpp", 166)}){TermIndex("inlinefunction/inlinefunction.cpp", 167)}){TermIndex("inlinefunction/inlinefunction.cpp", 172)}]{TermIndex("inlinefunction/inlinefunction.cpp", 175)}
+              ){TermIndex("inlinefunction/inlinefunction.cpp", 176)}
+            , Exp(
+                Call(
+                  Var(NamespaceID(None(){TermIndex("inlinefunction/inlinefunction.cpp", 179)}, "increment"{TermIndex("inlinefunction/inlinefunction.cpp", 180)}){TermIndex("inlinefunction/inlinefunction.cpp", 181)}){TermIndex("inlinefunction/inlinefunction.cpp", 182)}
+                , [Var(NamespaceID(None(){TermIndex("inlinefunction/inlinefunction.cpp", 184)}, "x"{TermIndex("inlinefunction/inlinefunction.cpp", 185)}){TermIndex("inlinefunction/inlinefunction.cpp", 186)}){TermIndex("inlinefunction/inlinefunction.cpp", 187)}]{TermIndex("inlinefunction/inlinefunction.cpp", 190)}
+                ){TermIndex("inlinefunction/inlinefunction.cpp", 191)}
+              ){TermIndex("inlinefunction/inlinefunction.cpp", 192)}
+            ]{TermIndex("inlinefunction/inlinefunction.cpp", 197)}
+          ){TermIndex("inlinefunction/inlinefunction.cpp", 198)}
+        ]{TermIndex("inlinefunction/inlinefunction.cpp", 204)}
+      ){TermIndex("inlinefunction/inlinefunction.cpp", 205)}
+    ){TermIndex("inlinefunction/inlinefunction.cpp", 206)}
+  ]{TermIndex("inlinefunction/inlinefunction.cpp", 212)}
+){TermIndex("inlinefunction/inlinefunction.cpp", 213)}

@@ -1,7 +1,7 @@
 class MyClass {
   private: 
     int x = 5; public :
-    int myfunc( ) 
+    int myfunc( )
 	{ 
 	  return x;
 	}

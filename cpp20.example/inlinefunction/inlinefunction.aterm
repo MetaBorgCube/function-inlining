@@ -52,8 +52,18 @@ TranslationUnit(
             [Int()]
           , [InitDecl(Declarator(NoPointer(), IdDecl("x")), DecInt("5"))]
           )
-        , Exp(
-            Call(Var(NamespaceID(None(), "increment")), [DecInt("2")])
+        , Compound(
+            [ Decl(
+                [Int()]
+              , [InitDecl(Declarator(NoPointer(), IdDecl("y")), DecInt("6"))]
+              )
+            , Exp(
+                Call(
+                  Var(NamespaceID(None(), "increment"))
+                , [Var(NamespaceID(None(), "x"))]
+                )
+              )
+            ]
           )
         ]
       )

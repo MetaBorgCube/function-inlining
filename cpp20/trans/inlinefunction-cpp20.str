@@ -18,7 +18,7 @@ rules
     get-subterms-from-argument, get-term-from-name, make-variable, editor-analyze, pp-debug, 
     insert-block, error-fixable-by-rename | "inlined.cpp")
   
-  // The call statement can be nested in constructors like Exp().
+  // The call statement can be nested in constructors like Exp(). 
   // So we need to traverse the term t and look for a Call() constructor.
   // As long as only one call statements is selected, the first item in the list
   // returned by collect will be the corresponding call term.

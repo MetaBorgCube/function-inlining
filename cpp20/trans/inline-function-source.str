@@ -47,7 +47,7 @@ rules
         )
 
       // Get the scope graph.
-      ; analysis := <stx-get-ast-analysis> selected
+      ; analysis := <stx-get-ast-analysis> ast
       
       // Extract the name- and the argument subterms from the function call term.
       ; ((function-name, args) := <get-subterms-from-call> selected

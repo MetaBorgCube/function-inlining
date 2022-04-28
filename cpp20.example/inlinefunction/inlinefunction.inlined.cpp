@@ -15,6 +15,9 @@ int increment(int x)
 int main( )
 {
   int x = 5;
-  int x_0 = 2;
-  1;
+  {
+    int y = 6;
+    int x = x;
+    1;
+  }
 }
