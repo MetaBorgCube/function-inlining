@@ -1,4 +1,4 @@
-module inlinefunction-cpp20
+module inline-function-cpp20
 // File added by Loek
 
 imports

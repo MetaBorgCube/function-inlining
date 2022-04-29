@@ -7,7 +7,7 @@ class MyClass {
 	}
 };
 
-int increment(int x)
+int increment(int x, int y)
 {
   return 1;
 }
@@ -17,7 +17,7 @@ int main( )
   int x = 5;
   {
   	int y = 6;
-    increment(x);
+    increment(x, 2);
   }
   
 }

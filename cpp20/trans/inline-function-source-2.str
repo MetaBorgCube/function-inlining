@@ -1,0 +1,144 @@
+module inline-function-source-2
+// File added by Loek
+
+imports 
+  statixruntime
+  statix/api
+  statix/runtime/renaming
+
+signature
+  sorts
+    NameFixID
+  constructors
+    NameFixID : string -> NameFixID
+
+rules
+  inline-function-action(pp-debug, ls-extract-data, ls-make-decs
+    | extension): (selected-term, _, ast, path, _) -> result
+	 with // TODO: Replace with where
+        // TODO: Replace filename with name of actual file instead of new file, such that the refactoring happens in the same file.
+        filename := <guarantee-extension(|extension)> path // Filename to store new program in.
+      ; inline-errors := <new-iset>
+      ;(
+        (
+          new-ast := <scope-local-new(inline-function(ls-extract-data, ls-make-decs|inline-errors))> (selected-term, ast)
+        	; result := (filename, <pp-debug> new-ast)
+        ) <+ (
+          <display-errors> inline-errors
+          ; result := None() // Errors occurred so don't change the program.
+        )
+      )
+      ; <iset-destroy> inline-errors
+
+  display-errors: inline-errors -> () // TODO:
+    with
+       all-error-strings := <concat-strings> <iset-elements> inline-errors
+     ; <show-dialog(|"Inline Function Error", "Error")> all-error-strings
+
+  add-annotation(|annotation): t -> <set-annotations> (t, [annotation | <get-annotations> t])
+
+  generate-id(|vs, new-ids, v): t -> new-t
+    where
+        new-t := <add-annotation(|v)> t
+      ; <iset-add(|v)> vs
+      ; <hashtable-put(|t, new-t)> new-ids
+      
+
+  // In some languages the Ref() relation returns a list of terms instead of a single term.
+  // If this is the case we assume that the first entry in the list is the correct definition.
+  get-ref-helper: [t|_] -> t
+  get-ref-helper: t -> t
+
+  add-error(|s): errors -> ()
+    where
+        <iset-add(|
+          <concat-strings>
+            ["> ERROR: ", s, "\n\n"]
+        )> errors
+      ; fail // After an error occurred, execution should abort so a fail is added.
+  add-error(|s, t): errors -> ()
+    where
+        <iset-add(|
+          <concat-strings> 
+            ["> ERROR: ", s, ":\n",
+            "    ", <write-to-string> <strip-annos> t,
+            "\n\n"]
+        )> errors
+      ; fail // After an error occurred, execution should abort so a fail is added.
+
+
+  // Main strategy.
+  inline-function(ls-extract-data, ls-make-decs
+    |inline-errors):
+    (selected-term, ast) -> ast-result
+    where
+      // Step 0 - Annotate Identifiers with unique IDs.
+      // Annotate identifier Terms with their unique IDs for name fix.
+      // Also store them in the set Vs.
+        vs := <new-iset>
+      // new-ids is needed to map the output of <stx-get-ast-ref> to the corresponding new term.
+      ; new-ids := <new-hashtable>
+      ; ast-s := <topdown(try(is-string; generate-id(|vs, new-ids, NameFixID(<local-newname> "v"))))> ast
+      
+      
+      // Step 1 - Find Definition and Extract Data.
+      // We need to explore subterms of the selected-term in case the function call is wrapped by 
+      // some constructor that is not covered by the ls-extract-data rules.
+      ; (<oncetd((fun-call-name, args') := <ls-extract-data(|())>)> selected-term
+        <+ <add-error(|"Couldn't find a function call term in the selected term", selected-term)> 
+              inline-errors)
+      ; args := <topdown(try(\ x -> <hashtable-get(|x)> new-ids \))> args'
+      
+      // Get the scope graph.
+      ; (analysis := <stx-get-ast-analysis>
+        <+ <add-error(|"Something went wrong while retrieving the analysis of the AST.")> 
+              inline-errors) 
+      
+      // Get the referenced identifier term (which should belong to the function definition).
+      // Because the term returned by stx-get-ast-ref is from the old ast, it doesn't have a
+      // NameFixID annotation. Get the corresponding term from the hasthable new-ids.
+      ; (fun-def-name := <hashtable-get(|
+                            <get-ref-helper> <stx-get-ast-ref(|analysis)> fun-call-name
+                         )> new-ids
+        <+ <add-error(|"Something went wrong while querying the scope graph to find the function 
+                       definition referenced by", fun-call-name)> inline-errors)
+            
+      // Get the function definition data and annotate all string subterms with "original".
+      ; (ast-s' := <oncetd((params, body, ftype) := <ls-extract-data(|fun-def-name)>; 
+                 !<topdown(try(is-string; !<add-annotation(|"original")>))>
+                )> ast-s
+        <+ <add-error(|"Couldn't find a function definition term using ls-extract-data with name", 
+                       fun-def-name)> inline-errors)
+      
+      ; <hashtable-destroy> new-ids
+      
+      
+      // Step 2 - Instantiate Parameters.
+      ; param-decs := <ls-make-decs> (params, args)
+      
+      
+      // Step 3 - Deal with Return Statements.
+      
+      
+      // Step 4 - Transform the AST.
+      
+      
+      // Step 5 - Check and Fix Reference Relations.
+      
+      ; <iset-destroy> vs
+      ; ast-result := ast // TODO: Change once finished
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+      

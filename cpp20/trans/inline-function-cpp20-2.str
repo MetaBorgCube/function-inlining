@@ -1,0 +1,27 @@
+module inline-function-cpp20-2
+// File added by Loek
+
+imports
+  analysis
+  pp
+  cpp20
+  inline-function-source-2
+  injections/c-syntax-injections
+
+rules
+  inline-function-test-2(|selected-term): ast -> <inline-function(ls-extract-data, ls-make-decs
+    |<new-iset>)> (selected-term, ast)
+  
+  inline-function-menu-action-2 = inline-function-action(pp-debug, ls-extract-data, ls-make-decs
+    | "inlined.cpp")
+  
+  
+  ls-extract-data(|_): Call(Var(NamespaceID(None(), name)), args) -> (name, args)
+  ls-extract-data(|_): Call(Proj(Var(namespace), name), args) -> (name, args)
+  ls-extract-data(|name): FunDef(type, Declarator(_, FunDeclTyped(IdDecl(name), ParamList(params))), _, Compound(body)) -> (params, body, type)
+    
+  ls-make-decs: (params, args) -> decs
+    where
+      decs := <zip(\ (ParamDecl1(type, name), value) 
+                      -> Decl(type, [InitDecl(name, value)])
+                   \)> (params, args)
