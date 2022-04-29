@@ -1,6 +1,89 @@
-Exp(
-  Call(
-    Var(NamespaceID(None(), "increment"))
-  , [Var(NamespaceID(None(), "x"))]
-  )
+TranslationUnit(
+  [ Decl(
+      [ ClassType(
+          Class()
+        , "MyClass"
+        , ClassBody(
+            ClassBodyDeclarationDefault([])
+          , [ ClassBodyDeclaration(
+                Private()
+              , [ Decl(
+                    [Int()]
+                  , [InitDecl(Declarator(NoPointer(), IdDecl("x")), DecInt("5"))]
+                  )
+                ]
+              )
+            , ClassBodyDeclaration(
+                Public()
+              , [ FunDef(
+                    [Int()]
+                  , Declarator(NoPointer(), FunDeclTyped(IdDecl("myfunc"), ParamList([])))
+                  , []
+                  , Compound([Return(Var(NamespaceID(None(), "x")))])
+                  )
+                ]
+              )
+            ]
+          )
+        )
+      ]
+    , []
+    )
+  , FunDef(
+      [Int()]
+    , Declarator(
+        NoPointer()
+      , FunDeclTyped(
+          IdDecl("increment")
+        , ParamList(
+            [ ParamDecl1([Int()], Declarator(NoPointer(), IdDecl("x")))
+            , ParamDecl1([Int()], Declarator(NoPointer(), IdDecl("y")))
+            ]
+          )
+        )
+      )
+    , []
+    , Compound([Return(DecInt("1"))])
+    )
+  , FunDef(
+      [Void()]
+    , Declarator(NoPointer(), FunDeclTyped(IdDecl("test"), ParamList([])))
+    , []
+    , Compound([Return(NoExp())])
+    )
+  , FunDef(
+      [Int()]
+    , Declarator(NoPointer(), FunDeclTyped(IdDecl("main"), ParamList([])))
+    , []
+    , Compound(
+        [ Decl(
+            [Int()]
+          , [InitDecl(Declarator(NoPointer(), IdDecl("x")), DecInt("5"))]
+          )
+        , Compound(
+            [ Decl(
+                [Int()]
+              , [InitDecl(Declarator(NoPointer(), IdDecl("y")), DecInt("6"))]
+              )
+            , Exp(
+                Call(
+                  Var(NamespaceID(None(), "increment"))
+                , [Var(NamespaceID(None(), "x")), DecInt("2")]
+                )
+              )
+            ]
+          )
+        , For(
+            ForInitDecl(
+              [Int()]
+            , [InitDecl(Declarator(NoPointer(), IdDecl("i")), DecInt("0"))]
+            )
+          , Order(Var(NamespaceID(None(), "i")), Lt(), DecInt("10"))
+          , NoExp()
+          , Compound([])
+          )
+        ]
+      )
+    )
+  ]
 )

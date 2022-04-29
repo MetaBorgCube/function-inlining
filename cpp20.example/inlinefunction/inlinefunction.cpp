@@ -12,6 +12,8 @@ int increment(int x, int y)
   return 1;
 }
 
+void test() { return; }
+
 int main( )
 {
   int x = 5;
@@ -19,5 +21,4 @@ int main( )
   	int y = 6;
     increment(x, 2);
   }
-  
 }

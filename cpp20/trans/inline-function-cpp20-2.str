@@ -9,19 +9,83 @@ imports
   injections/c-syntax-injections
 
 rules
-  inline-function-test-2(|selected-term): ast -> <inline-function(ls-extract-data, ls-make-decs
+  inline-function-test-2(|selected-term): ast -> <inline-function(ls-extract-data, ls-make-decs,
+    ls-get-last-return, ls-is-return, ls-construct-block, ls-is-exp-language, ls-is-statement,
+    ls-insert-before, ls-remove-exp
     |<new-iset>)> (selected-term, ast)
   
-  inline-function-menu-action-2 = inline-function-action(pp-debug, ls-extract-data, ls-make-decs
+  inline-function-menu-action-2 = inline-function-action(pp-debug, ls-extract-data, ls-make-decs,
+    ls-get-last-return, ls-is-return, ls-construct-block, ls-is-exp-language, ls-is-statement,
+    ls-insert-before, ls-remove-exp
     | "inlined.cpp")
   
   
-  ls-extract-data(|_): Call(Var(NamespaceID(None(), name)), args) -> (name, args)
-  ls-extract-data(|_): Call(Proj(Var(namespace), name), args) -> (name, args)
-  ls-extract-data(|name): FunDef(type, Declarator(_, FunDeclTyped(IdDecl(name), ParamList(params))), _, Compound(body)) -> (params, body, type)
+  ls-extract-data(|_): t -> (t, name, args)
+    where
+      <?Call(Var(NamespaceID(_, name)), args)> t
+  ls-extract-data(|_): t -> (t, name, args) 
+    where
+      <?Call(Proj(_, name), args)> t
+  ls-extract-data(|name): FunDef(type, Declarator(_, FunDeclTyped(IdDecl(name), ParamList(params))), _, body) -> (params, body, type)
     
   ls-make-decs: (params, args) -> decs
     where
       decs := <zip(\ (ParamDecl1(type, name), value) 
-                      -> Decl(type, [InitDecl(name, value)])
-                   \)> (params, args)
+                      -> Decl(type, [InitDecl(name, value)]) \)> 
+                (params, args)
+                   
+  ls-get-last-return(|[Void()]): Compound(body) -> (body', ())
+    where
+      (body', Return(NoExp())) := <split-init-last> body
+  ls-get-last-return(|[Void()]): Compound(body) -> (body, ())
+  ls-get-last-return(|_): Compound(body) -> (body', return-exp)
+    where
+      (body', Return(return-exp)) := <split-init-last> body
+  
+  ls-is-return = ?Return(_)
+  
+  ls-construct-block: (body, params) -> (Compound(<concat> [params, body]))
+  
+  ls-is-exp-language = fail
+  
+  ls-is-statement = is-cpp20-BlockItem-or-inj
+  
+  ls-insert-before(|stmt, block): ast -> ast-t
+    where
+      ast-t := <oncetd(ls-insert-before'(|stmt, block))> ast
+  // We reject inlining functions in the condition of a loop construct.
+  ls-insert-before'(|For(_, _, _, _), _): _ -> ()
+  ls-insert-before'(|ForEach(_, _, _, _, _), _): _ -> ()
+  ls-insert-before'(|While(_, _), _): _ -> ()
+  ls-insert-before'(|DoWhile(_, _), _): _ -> ()
+  // In case the function body is empty, nothing needs to be added in front of the statement.
+  ls-insert-before'(|stmt, Compound([])): stmt -> stmt
+  // There are cases where the statement is a singular statement, so it is not part of a list.
+  // In that case it should be turned into a Compound block when the other statements are added.
+  ls-insert-before'(|stmt, Compound(new-block)): stmt -> Compound(<conc> (new-block, [stmt]))
+  // Else, the new statements should just be inserted in the list containing the specified stmt.
+  ls-insert-before'(|stmt, Compound(new-block)): t -> new-t
+    where
+        (before, after) := <split-fetch(?stmt)> t
+      ; new-t := <conc> (before, new-block, [stmt], after)
+  
+  // In C++ the function call only needs to be removed for void functions.
+  // Void functions can not be part of an expression, so they will always be standalone expression 
+  // statements.
+  // Therefore we just remove the statement containing the function call.
+  ls-remove-exp(|exp): ast -> ast-t
+    where
+      ast-t := <oncetd(<conc> <split-fetch(?Exp(exp))>)> ast
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
