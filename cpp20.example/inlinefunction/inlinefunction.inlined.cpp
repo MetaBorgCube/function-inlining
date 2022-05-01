@@ -7,9 +7,9 @@ class MyClass {
     }
 } ;
 
-int increment(int x, int y)
+int increment(int x)
 {
-  return 1;
+  return x;
 }
 
 void test( )
@@ -21,7 +21,8 @@ int main( )
 {
   int x = 5;
   {
-    int y = 6;
-    increment(x, 2);
+    int x_0 = x;
+    x_0;
+    x = 6;
   }
 }

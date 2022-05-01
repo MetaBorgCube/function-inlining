@@ -44,7 +44,7 @@ rules // Step 1: Calculate Resolution Relation
   get-dec-ref-pair(|analysis): t -> (ref-index, dec-index)
     where
       <is-string> t
-      // Changed by Loek to fix code:
+      // get-ref-helper added by Loek to fix code:
       ; dec := <get-ref-helper> <stx--get-ast-property(|analysis, Ref())> t
       ; ref-index := <stx--get-ast-index> t
       ; dec-index := <stx--get-ast-index> dec
@@ -52,11 +52,11 @@ rules // Step 1: Calculate Resolution Relation
   get-dec-reflexive-pair(|analysis): t -> (dec-index, dec-index)
     where
       <is-string> t
-      // Changed by Loek to fix code:
+      // get-ref-helper added by Loek to fix code:
       ; dec := <get-ref-helper> <stx--get-ast-property(|analysis, Prop("decl"))>
       ; dec-index := <stx--get-ast-index> dec
 
-  // Added by Loek to fix code:
+  // get-ref-helper added by Loek to fix code:
   get-ref-helper: [t|_] -> t
   get-ref-helper: t -> t
 

@@ -93,7 +93,7 @@ rules
         <+ (<iset-add(|"> ERROR: Something went wrong while inserting the function body.\n\n")> inline-errors ; fail))
       
       // Re-analyze the AST.
-      ; <getfirst(?TermIndex(path, _))> <get-annotations> t
+      ; <getfirst(?TermIndex(path, _))> <get-annotations> t // We can't take the argument path since SPT tests don't provide that argument.
       ; Full(ast-reannotated, FileAnalysis(_, new-analysis), analysis-errors, _, _) := <re-analyze-ast-single(editor-analyze|path, analysis, inline-errors)> ast-inlined
 	  	   
       // Check if reference annotations have been preserved.

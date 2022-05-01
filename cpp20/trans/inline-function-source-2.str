@@ -2,19 +2,14 @@ module inline-function-source-2
 // File added by Loek
 
 imports 
-  statixruntime
-  statix/api
-  statix/runtime/renaming
-
-signature
-  sorts
-    NameFixID
-  constructors
-    NameFixID : string -> NameFixID
+  statix/runtime/analysis
+  libspoofax/ui/dialogs
+  inline-function-name-fix
 
 rules
   inline-function-action(pp-debug, ls-extract-data, ls-make-decs, ls-get-last-return, ls-is-return,
-    ls-construct-block, ls-is-exp-language, ls-is-statement, ls-insert-before, ls-remove-exp
+    ls-construct-block, ls-is-exp-language, ls-is-statement, ls-insert-before, ls-remove-exp,
+    ls-fix-semantic-errors, editor-analyze
     |extension): (selected-term, _, ast, path, _) -> result
 	 with // TODO: Replace with where
         // TODO: Replace filename with name of actual file instead of new file, such that the refactoring happens in the same file.
@@ -24,7 +19,8 @@ rules
         (
           new-ast := <scope-local-new(inline-function(ls-extract-data, ls-make-decs,
             ls-get-last-return, ls-is-return, ls-construct-block, ls-is-exp-language, 
-            ls-is-statement, ls-insert-before, ls-remove-exp
+            ls-is-statement, ls-insert-before, ls-remove-exp, ls-fix-semantic-errors, 
+            editor-analyze
             |inline-errors))> (selected-term, ast)
         	; result := (filename, <pp-debug> new-ast)
         ) <+ (
@@ -38,7 +34,8 @@ rules
 
   // Main strategy.
   inline-function(ls-extract-data, ls-make-decs, ls-get-last-return, ls-is-return, 
-    ls-construct-block, ls-is-exp-language, ls-is-statement, ls-insert-before, ls-remove-exp
+    ls-construct-block, ls-is-exp-language, ls-is-statement, ls-insert-before, ls-remove-exp,
+    ls-fix-semantic-errors, editor-analyze
     |inline-errors): (selected-term, ast) -> ast-result
     where
       // Step 0 - Annotate Identifiers with unique IDs.
@@ -47,7 +44,8 @@ rules
         vs := <new-iset>
       // new-ids is needed to map the output of <stx-get-ast-ref> to the corresponding new term.
       ; new-ids := <new-hashtable>
-      ; ast-s := <topdown(try(is-string; generate-id(|vs, new-ids, NameFixID(<local-newname> "v"))))> ast
+      ; ast-s := 
+          <topdown(try(is-string; generate-id(|vs, new-ids, NameFixID(<local-newname> "v"))))> ast
       
       
       // Step 1 - Find Definition and Extract Data.
@@ -84,9 +82,7 @@ rules
         <+ <add-error(|"ls-extract-data failed to find function definition with the name term 
                         below when annotating the identifiers", [("term", fun-def-name)]
                      )> inline-errors)
-      
-      ; <hashtable-destroy> new-ids
-      
+            
       
       // Step 2 - Instantiate Parameters.
       ; param-decs := <ls-make-decs> (params, args')
@@ -139,10 +135,11 @@ rules
       
       
       // Step 5 - Check and Fix Reference Relations.
-      
+      ; ast-result := <name-fix(editor-analyze, add-error, ls-fix-semantic-errors|
+                        ast-s, analysis, vs, inline-errors, new-ids)> ast-t'
+            
       ; <iset-destroy> vs
-      ; ast-result := ast // TODO: Change once finished
-        
+      ; <hashtable-destroy> new-ids        
         
         
   display-errors: inline-errors -> ()
@@ -172,6 +169,7 @@ rules
             "\n\n"]
         )> errors
       ; fail // After an error occurred, execution should abort so a fail is added.
+  // We strip the annotations because otherwise the error message would become cluttered.
   format-error-tuple: (msg, t) 
     -> <concat-strings> ["\n\n    ", msg, ": ", <write-to-string> <strip-annos> t]
         

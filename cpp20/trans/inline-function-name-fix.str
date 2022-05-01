@@ -1,0 +1,172 @@
+module inline-function-name-fix
+
+imports
+  statix/runtime/analysis // Required for sorts like AnalyzeSingle()
+  
+
+signature
+  sorts
+    NameFixID
+  constructors
+    NameFixID : string -> NameFixID
+
+rules
+  name-fix(editor-analyze, add-error, ls-fix-semantic-errors|
+    ast-s, analysis-s, vs, inline-errors, new-ids): ast-t' -> ast-t-fixed
+    where
+      // Try to fix Static Semantics Violations.
+        ((ast-t, analysis-t) := <fix-semantic-errors(editor-analyze, ls-fix-semantic-errors|
+                                  analysis-s, inline-errors)> ast-t'
+        <+ <add-error(|"Failed to fix Statix Semantics violations", [])> inline-errors)
+      
+      // Construct rho for ast-s.
+      ; (rho-s := <get-rho(|new-ids)> (ast-s, analysis-s)
+        <+ <add-error(|"Failed to construct rho-s", [])> inline-errors)
+      // Construct rho for ast-t.
+      ; (rho-t := <get-rho(|new-ids)> (ast-t, analysis-t)
+        <+ <add-error(|"Failed to construct rho-t", [])> inline-errors)
+      
+      // Get domain of rho.      
+      ; dom-rho-s := <map(Fst)> rho-s
+      ; dom-rho-t := <map(Fst)> rho-t
+      
+      // For every 'v' in dom-rho-t, check for capture.
+      ; (capture-relations := <collect(check-capture(|dom-rho-s, rho-s, rho-t))> dom-rho-t
+      <+ <add-error(|"Something went wrong while checking relations for capture during name-fix",
+                    [("rho-s", rho-s), ("rho-t", rho-t)])> inline-errors)
+      
+      ; if <eq> (capture-relations, [])
+        then ast-t-fixed := ast-t
+        else codomain-capture-relations := <make-set> <map(Snd)> capture-relations
+          ; (ast-t-renamed := <foldr(!ast-t, rename-capture(|rho-s))> codomain-capture-relations
+          <+ <add-error(|"Something went wrong while renaming capture relations", 
+                         [("capture-relations", capture-relations), ("ast-t", ast-t)]
+                       )> inline-errors)
+          ; ast-t-fixed := <name-fix(editor-analyze, add-error, ls-fix-semantic-errors|ast-s, 
+              analysis-s, vs, inline-errors, new-ids)> ast-t-renamed 
+        end
+      
+      
+
+  
+  fix-semantic-errors(editor-analyze, ls-fix-semantic-errors|old-analysis, inline-errors):
+    old-ast -> (new-ast, new-analysis)
+    where
+      // Get scope graph of the transformed AST.
+        (new-ast', new-analysis', analysis-errors) := 
+          <re-analyze-ast-single-file(editor-analyze|old-analysis, inline-errors)> old-ast
+      // Check if the Statix analysis returned errors.
+      ; if <eq> (analysis-errors, [])
+        then 
+          // If not, return the annotated AST and the new scope graph.
+            new-ast := new-ast'
+          ; new-analysis := new-analysis'
+        else
+          // If errors were found, apply language-specific strategy to fix them.
+            (fixed-ast := <ls-fix-semantic-errors(|analysis-errors)> new-ast'
+            <+ <add-error(|"ls-fix-semantic-errors failed to fix one of the errors found by the
+                            Statix analysis", [("errors", analysis-errors), ("ast", new-ast')]
+                         )> inline-errors)
+          // Make sure that the AST was changed to prevent an infinite loop.
+          ; if <eq> (fixed-ast, new-ast')
+            then <add-error(|"ls-fix-semantic-errors did not change the AST", 
+                             [("errors", analysis-errors), ("input-ast", new-ast')])> inline-errors
+            end
+          // Then recursively call this strategy to re-analyze the fixed AST.
+          ; (new-ast, new-analysis) :=
+              <fix-semantic-errors(editor-analyze, ls-fix-semantic-errors|new-analysis', 
+                inline-errors)> fixed-ast
+        end
+  
+  re-analyze-ast-single-file(editor-analyze|old-analysis, inline-errors): ast 
+    -> (ast-reannotated, analysis, analysis-errors)
+    where
+        <getfirst(?TermIndex(path, _))> <get-annotations> ast
+      ; input := AnalyzeSingle([(path, Changed(ast, old-analysis))], (), ())
+      ; AnalysisResult([(_, Full(ast-reannotated, FileAnalysis(_, analysis), 
+          analysis-errors, _, _))]) := <editor-analyze> input
+      <+ (<iset-add(|<concat-strings>
+        ["> ERROR: Something went wrong while analyzing the changed AST:\n",
+        "    ", <write-to-string> ast,
+        "\n\n"]
+      )> inline-errors; fail)
+      
+
+  get-rho(|new-ids): (ast, analysis) -> rho
+    where
+      rho := <collect(get-ref-relation(|analysis, new-ids))> ast
+  
+  
+  // The scope graph of the original AST does not contain the annotated IDs.
+  // Therefore, we need the hashtable that maps original terms to their annotated variant,
+  // to be able to retrieve their IDs.
+  get-ref-relation(|analysis, new-ids): t -> (v-r, v-d)
+    where
+        is-string
+      ; v-r := <get-name-id> t
+      ; t-d := <get-ref-helper> <stx-get-ast-ref(|analysis)> t
+      ; (v-d := <get-name-id> t-d
+      <+ v-d := <get-name-id> <hashtable-get(|t-d)> new-ids)
+
+  
+  get-name-id: t -> v
+    where
+      NameFixID(v) := <fetch-elem(?NameFixID(_))> <get-annotations> t
+  
+  
+  // In some languages the Ref() relation returns a list of terms instead of a single term.
+  // If this is the case we assume that the first entry in the list is the correct definition.
+  get-ref-helper: [t|_] -> t
+  get-ref-helper: t -> t
+  
+  
+  check-capture(|dom-rho-s, rho-s, rho-t): v -> (v, v-d)
+    where
+      if <elem> (v, dom-rho-s)
+      then not(<eq> (<rho-lookup(|v)> rho-s, <rho-lookup(|v)> rho-t))
+        ; v-d := <rho-lookup(|v)> rho-t
+      else not(<eq> (v, <rho-lookup(|v)> rho-t))
+        ; v-d := <rho-lookup(|v)> rho-t
+      end
+      
+  rho-lookup(|v-r): rho -> <Snd> <fetch-elem(where(Fst; ?v-r))> rho
+      
+  
+  rename-capture(|rho-s): (v-d, ast) -> new-ast
+    where
+        x-d := <collect-one(where(get-name-id; ?v-d))> ast
+      ; new-name := <local-newname> x-d
+      // Rename all declarations with the same ID that are not annotated with "original".
+      ; ast' := <topdown(try(has-id(|v-d); 
+                             not-original-fun-def-term;
+                             preserve-annos(!new-name)))> ast
+      // Rename all intended references to the same ID that are not annotated with "original".
+      ; new-ast := <topdown(try(references-id(|v-d, rho-s);
+                            not-original-fun-def-term;
+                            preserve-annos(!new-name)))> ast'
+      
+  
+  has-id(|v): t -> t
+    where
+      <eq> (v, <get-name-id> t)
+  
+  references-id(|v-d, rho): t -> t
+    where
+        v-r := <get-name-id> t
+      ; <eq> (v-d, <rho-lookup(|v-r)> rho)
+  
+  not-original-fun-def-term: t -> t
+    where
+      not(<elem> ("original", <get-annotations> t))
+      
+      
+      
+      
+      
+      
+      
+      
+         
+      
+  
+  

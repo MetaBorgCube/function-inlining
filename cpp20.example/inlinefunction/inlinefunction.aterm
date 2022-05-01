@@ -73,15 +73,6 @@ TranslationUnit(
               )
             ]
           )
-        , For(
-            ForInitDecl(
-              [Int()]
-            , [InitDecl(Declarator(NoPointer(), IdDecl("i")), DecInt("0"))]
-            )
-          , Order(Var(NamespaceID(None(), "i")), Lt(), DecInt("10"))
-          , NoExp()
-          , Compound([])
-          )
         ]
       )
     )

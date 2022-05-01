@@ -11,12 +11,12 @@ imports
 rules
   inline-function-test-2(|selected-term): ast -> <inline-function(ls-extract-data, ls-make-decs,
     ls-get-last-return, ls-is-return, ls-construct-block, ls-is-exp-language, ls-is-statement,
-    ls-insert-before, ls-remove-exp
+    ls-insert-before, ls-remove-exp, ls-fix-semantic-errors, editor-analyze
     |<new-iset>)> (selected-term, ast)
   
   inline-function-menu-action-2 = inline-function-action(pp-debug, ls-extract-data, ls-make-decs,
     ls-get-last-return, ls-is-return, ls-construct-block, ls-is-exp-language, ls-is-statement,
-    ls-insert-before, ls-remove-exp
+    ls-insert-before, ls-remove-exp, ls-fix-semantic-errors, editor-analyze
     | "inlined.cpp")
   
   
@@ -52,19 +52,19 @@ rules
   
   ls-insert-before(|stmt, block): ast -> ast-t
     where
-      ast-t := <oncetd(ls-insert-before'(|stmt, block))> ast
+      ast-t := <oncetd(insert-before-helper(|stmt, block))> ast
   // We reject inlining functions in the condition of a loop construct.
-  ls-insert-before'(|For(_, _, _, _), _): _ -> ()
-  ls-insert-before'(|ForEach(_, _, _, _, _), _): _ -> ()
-  ls-insert-before'(|While(_, _), _): _ -> ()
-  ls-insert-before'(|DoWhile(_, _), _): _ -> ()
+  insert-before-helper(|For(_, _, _, _), _): _ -> ()
+  insert-before-helper(|ForEach(_, _, _, _, _), _): _ -> ()
+  insert-before-helper(|While(_, _), _): _ -> ()
+  insert-before-helper(|DoWhile(_, _), _): _ -> ()
   // In case the function body is empty, nothing needs to be added in front of the statement.
-  ls-insert-before'(|stmt, Compound([])): stmt -> stmt
+  insert-before-helper(|stmt, Compound([])): stmt -> stmt
   // There are cases where the statement is a singular statement, so it is not part of a list.
   // In that case it should be turned into a Compound block when the other statements are added.
-  ls-insert-before'(|stmt, Compound(new-block)): stmt -> Compound(<conc> (new-block, [stmt]))
+  insert-before-helper(|stmt, Compound(new-block)): stmt -> Compound(<conc> (new-block, [stmt]))
   // Else, the new statements should just be inserted in the list containing the specified stmt.
-  ls-insert-before'(|stmt, Compound(new-block)): t -> new-t
+  insert-before-helper(|stmt, Compound(new-block)): t -> new-t
     where
         (before, after) := <split-fetch(?stmt)> t
       ; new-t := <conc> (before, new-block, [stmt], after)
@@ -76,9 +76,9 @@ rules
   ls-remove-exp(|exp): ast -> ast-t
     where
       ast-t := <oncetd(<conc> <split-fetch(?Exp(exp))>)> ast
-      
-      
-      
+
+  // We don't fix any Statix analysis errors so we only accept 0 errors.
+  ls-fix-semantic-errors(|[]): ast -> ast
       
       
       
