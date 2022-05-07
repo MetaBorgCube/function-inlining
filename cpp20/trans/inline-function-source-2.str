@@ -96,6 +96,7 @@ rules
       ; ((body', return-exp) := <ls-get-last-return(|ftype)> body
         <+ <add-error(|"ls-get-last-return failed to extract the last return statement from the body", 
                        [("body", body)])> inline-errors)
+      ; return-exp' := <topdown(add-annotation(|"inlined"))> return-exp
       ; (<topdown(not(ls-is-return))> body'
         <+ <add-error(|"ls-is-return found return statements before the last statement in the function body", 
                        [("body", body)])> inline-errors)
@@ -126,29 +127,32 @@ rules
         ; try(<eq> (ast-t, ()); <add-error(|"ls-insert-before returned an empty AST", [])> 
                                   inline-errors)
         
-        ; if <eq> (return-exp, ())
+        ; if <eq> (<strip-annos> return-exp', ())
           then (ast-t' := <ls-remove-exp(|fun-call-term')> ast-t
                <+ <add-error(|"ls-remove-exp failed to remove the function call", 
                               [("call", fun-call-term'), ("AST", ast-t)])> inline-errors)
-          else (ast-t' := <oncetd(?fun-call-term'; !return-exp)> ast-t
+          else (ast-t' := <oncetd(?fun-call-term'; !return-exp')> ast-t
                <+ <add-error(|"Failed to replace the function call with the return expression",
-                              [("call", fun-call-term'), ("exp", return-exp), ("AST", ast-t)]
+                              [("call", fun-call-term'), ("exp", return-exp'), ("AST", ast-t)]
                             )> inline-errors)
           end
         end
       
       // Step 5 - Check and Fix Reference Relations.
       
-      // Annotate all identifiers in the function definition with "original", such that they aren't renamed together
-      // with their copied variants
-      ; (ast-t'' := <oncetd(where(ls-extract-data(|fun-def-name)); 
-                          !<topdown(try(is-string; !<add-annotation(|"original")>))>)> ast-t'
-        <+ <add-error(|"ls-extract-data failed to find a function definition with the name below.", 
-                       [("ast", ast-t'), ("term", fun-def-name)]
-                     )> inline-errors)
+//      // Annotate all identifiers in the function definition with "original", such that they aren't renamed together
+//      // with their copied variants
+//      ; (ast-t'' := <oncetd(where(ls-extract-data(|fun-def-name)); 
+//                          !<topdown(try(is-string; !<add-annotation(|"original")>))>)> ast-t'
+//        <+ <add-error(|"ls-extract-data failed to find a function definition with the name below.", 
+//                       [("ast", ast-t'), ("term", fun-def-name)]
+//                     )> inline-errors)
+      
+//      ; ast-result := <name-fix(editor-analyze, add-error, ls-fix-semantic-errors|
+//                        ast-s, analysis, vs, inline-errors, new-ids)> ast-t''
       
       ; ast-result := <name-fix(editor-analyze, add-error, ls-fix-semantic-errors|
-                        ast-s, analysis, vs, inline-errors, new-ids)> ast-t''
+                        ast-s, analysis, vs, inline-errors, new-ids)> ast-t'
             
       ; <iset-destroy> vs
       ; <hashtable-destroy> new-ids        
