@@ -5,8 +5,12 @@ imports
   statix/runtime/analysis
   libspoofax/ui/dialogs
   inline-function-name-fix
-
+  
 rules
+//  inline-function-action(pp-debug, ls-extract-data, ls-make-decs, ls-get-last-return, ls-is-return,
+//    ls-construct-block, ls-is-exp-language, ls-is-statement, ls-insert-before, ls-remove-exp,
+//    ls-fix-semantic-errors, editor-analyze
+//    |extension): (selected-term, _, ast, path, _) -> result
   inline-function-action(pp-debug, ls-extract-data, ls-make-decs, ls-get-last-return, ls-is-return,
     ls-construct-block, ls-is-exp-language, ls-is-statement, ls-insert-before, ls-remove-exp,
     ls-fix-semantic-errors, editor-analyze
@@ -22,7 +26,11 @@ rules
             ls-is-statement, ls-insert-before, ls-remove-exp, ls-fix-semantic-errors, 
             editor-analyze
             |inline-errors))> (selected-term, ast)
-        	; result := (filename, <pp-debug> new-ast)
+        	; transformed-source-code := <pp-debug> new-ast
+          // At the time of writing, construct-textual-change doesn't work because of issues with origin tracking.
+          // In case it is fixed, the line below can be uncommented to replace the line above.
+//        	; (_, _, transformed-source-code) := <construct-textual-change> (ast, new-ast)
+        	; result := (filename, transformed-source-code)
         ) <+ (
           <display-errors> inline-errors
           ; result := None() // Errors occurred so don't change the program.
@@ -53,13 +61,13 @@ rules
       // some constructor that is not covered by the ls-extract-data rules.
       ; (<oncetd((fun-call-term, fun-call-name, args) := <ls-extract-data(|())>)> selected-term
         <+ <add-error(|"ls-extract-data failed to find a function call term in the selected term", 
-                        [("term", selected-term)])> inline-errors)
+                       [("term", selected-term)])> inline-errors)
       // Ensure that the extracted terms are annotated with the correct IDs.
       ; fun-call-term' := <topdown(try(\ x -> <hashtable-get(|x)> new-ids \))> fun-call-term
       ; args' := <topdown(try(\ x -> <hashtable-get(|x)> new-ids \))> args
       
       // Get the scope graph.
-      ; (analysis := <stx-get-ast-analysis>
+      ; (analysis := <stx-get-ast-analysis> ast
         <+ <add-error(|"Something went wrong while retrieving the analysis of the AST.", [])> 
               inline-errors)
       
@@ -69,19 +77,13 @@ rules
       ; (fun-def-name := <hashtable-get(|
                             <get-ref-helper> <stx-get-ast-ref(|analysis)> fun-call-name
                          )> new-ids
-        <+ <add-error(|"Something went wrong while querying the scope graph with the term below", 
-                        [("term", fun-call-name)])> inline-errors)
+        <+ <add-error(|"Something went wrong while querying the scope graph with the function call name term", 
+                       [("name term", fun-call-name)])> inline-errors)
             
       // Get the function definition data.
       ; ((params, body, ftype) := <collect-one(ls-extract-data(|fun-def-name))> ast-s
-        <+ <add-error(|"ls-extract-data failed to find the function definition with the name term 
-                        below when extracting the data", [("term", fun-def-name)])> inline-errors)
-      // Annotate all identifiers inside the function definition with "original.
-      ; (ast-s' := <oncetd(where(ls-extract-data(|fun-def-name)); 
-                          !<topdown(try(is-string; !<add-annotation(|"original")>))>)> ast-s
-        <+ <add-error(|"ls-extract-data failed to find function definition with the name term 
-                        below when annotating the identifiers", [("term", fun-def-name)]
-                     )> inline-errors)
+        <+ <add-error(|"ls-extract-data failed to find the function definition with the name term below when extracting the data", 
+                       [("term", fun-def-name)])> inline-errors)
             
       
       // Step 2 - Instantiate Parameters.
@@ -92,30 +94,32 @@ rules
       // ls-get-last-return only extracts and removes a return statement if applicable in the 
       // language in question.
       ; ((body', return-exp) := <ls-get-last-return(|ftype)> body
-        <+ <add-error(|"ls-get-last-return failed to extract the last return statement from the 
-                        body below", body)> inline-errors)
+        <+ <add-error(|"ls-get-last-return failed to extract the last return statement from the body", 
+                       [("body", body)])> inline-errors)
       ; (<topdown(not(ls-is-return))> body'
-        <+ <add-error(|"ls-is-return found return statements before the last statement in the 
-                        function body", [("body", body)])> inline-errors)
+        <+ <add-error(|"ls-is-return found return statements before the last statement in the function body", 
+                       [("body", body)])> inline-errors)
       
       
       // Step 4 - Transform the AST.
-      ; (block := <ls-construct-block> (body', param-decs)
-        <+ <add-error(|"ls-construct-block failed to create a code block from the body and 
-                        parameter declarations", [("body", body'), ("param-decs", param-decs)]
+      
+      // Construct the block. 
+      // Add "inlined" annotation for when inlining recursive function calls (needed to remove the original function call expression and not the inserted call).
+      ; (block := <topdown(add-annotation(|"inlined"))> <ls-construct-block> (body', param-decs)
+        <+ <add-error(|"ls-construct-block failed to create a code block from the body and parameter declarations", 
+                       [("body", body'), ("param-decs", param-decs)]
                      )> inline-errors)
       ; if ls-is-exp-language
-        then ast-t := <oncetd(?fun-call-term'; !block)> ast-s'
+        then ast-t := <oncetd(?fun-call-term'; !block)> ast-s
         else 
-          (surrounding-stmt := <get-surrounding-stmt(ls-is-statement|fun-call-term', ())> ast-s'
-          <+ <add-error(|"No surrounding ls-is-statement term was found for the function call term 
-                          in the ast", [("fun-call-term", fun-call-term'), ("AST", ast-s')]
+          (surrounding-stmt := <get-surrounding-stmt(ls-is-statement|fun-call-term', ())> ast-s // Don't use ast-s' because it has "original" annotations, which could cause a mismatch.
+          <+ <add-error(|"No surrounding ls-is-statement term was found for the function call term in the ast", 
+                         [("fun-call-term", fun-call-term'), ("AST", ast-s)]
                        )> inline-errors)
-                
-        ; (ast-t := <ls-insert-before(|surrounding-stmt, block)> ast-s'
-          <+ <add-error(|"ls-insert-before failed to insert the block into the AST before the 
-                          statement", [("block", block), ("stmt", surrounding-stmt), 
-                          ("AST", ast-s')])> inline-errors)
+        ; (ast-t := <ls-insert-before(|surrounding-stmt, block)> ast-s
+          <+ <add-error(|"ls-insert-before failed to insert the block into the AST before the statement", 
+                         [("block", block), ("stmt", surrounding-stmt), 
+                          ("AST", ast-s)])> inline-errors)
         // If inlining is not allowed by the language engineer for the surrounding stmt (for
         // example because the call is surrounded by a loop-condition) the ast-t should be turned 
         // into () such that it is caught by the try() clause below.
@@ -133,20 +137,48 @@ rules
           end
         end
       
-      
       // Step 5 - Check and Fix Reference Relations.
+      
+      // Annotate all identifiers in the function definition with "original", such that they aren't renamed together
+      // with their copied variants
+      ; (ast-t'' := <oncetd(where(ls-extract-data(|fun-def-name)); 
+                          !<topdown(try(is-string; !<add-annotation(|"original")>))>)> ast-t'
+        <+ <add-error(|"ls-extract-data failed to find a function definition with the name below.", 
+                       [("ast", ast-t'), ("term", fun-def-name)]
+                     )> inline-errors)
+      
       ; ast-result := <name-fix(editor-analyze, add-error, ls-fix-semantic-errors|
-                        ast-s, analysis, vs, inline-errors, new-ids)> ast-t'
+                        ast-s, analysis, vs, inline-errors, new-ids)> ast-t''
             
       ; <iset-destroy> vs
       ; <hashtable-destroy> new-ids        
-        
-        
+
+
+  // Helper strategies to display error messages.
   display-errors: inline-errors -> ()
-    with
+    where
        all-error-strings := <concat-strings> <iset-elements> inline-errors
      ; <show-dialog(|"Inline Function Error", "Error")> all-error-strings
 
+  add-error(|msg, error-tuples): errors -> ()
+    where
+      // msg is printed to console here, error-tuples are printed in format-error-tuple
+        <debug> <concat-strings> ["> INLINE FUNCTION ERROR: ", msg]
+      ; <iset-add(|
+          <concat-strings> 
+            ["> INLINE FUNCTION ERROR: ", msg, ":",
+            <concat-strings> <map(format-error-tuple)> error-tuples,
+            "\n\n"]
+        )> errors
+      ; fail // After an error occurred, execution should abort so a fail is added.
+  // We strip the annotations because otherwise the error message would become cluttered.
+  format-error-tuple: (msg, t) 
+    -> <concat-strings> ["\n\n    ", msg, ": ", <write-to-string> <strip-annos> t]
+    where
+      <debug> <concat-strings> [msg, ": ", <write-to-string> <strip-annos> t]
+
+
+  // Helper strategy to add an annotation to a term whilst keeping the existing annotations.
   add-annotation(|annotation): t -> <set-annotations> (t, [annotation | <get-annotations> t])
 
   generate-id(|vs, new-ids, v): t -> new-t
@@ -155,24 +187,13 @@ rules
       ; <iset-add(|v)> vs
       ; <hashtable-put(|t, new-t)> new-ids
       
+      
   // In some languages the Ref() relation returns a list of terms instead of a single term.
   // If this is the case we assume that the first entry in the list is the correct definition.
   get-ref-helper: [t|_] -> t
   get-ref-helper: t -> t
 
-  add-error(|msg, error-tuples): errors -> ()
-    where
-        <iset-add(|
-          <concat-strings> 
-            ["> ERROR: ", msg, ":",
-            <concat-strings> <map(format-error-tuple)> error-tuples,
-            "\n\n"]
-        )> errors
-      ; fail // After an error occurred, execution should abort so a fail is added.
-  // We strip the annotations because otherwise the error message would become cluttered.
-  format-error-tuple: (msg, t) 
-    -> <concat-strings> ["\n\n    ", msg, ": ", <write-to-string> <strip-annos> t]
-        
+
   // When the term itself is a statement, it is its own surrounding statement.
   get-surrounding-stmt(ls-is-statement|fun-call-term, _): _ -> fun-call-term
     where

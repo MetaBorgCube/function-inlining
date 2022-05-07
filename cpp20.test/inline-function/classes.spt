@@ -14,7 +14,7 @@ int main() {
     MyClass bar;
     [[bar.foo()]];
 }
-]] run inline-function-test(|#1) to [[
+]] run inline-function-test-2(|#1) to [[
 class MyClass {
   public :
     int foo( )
@@ -42,7 +42,7 @@ int main() {
     MyClass bar;
     [[bar.add(2, 3)]];
 }
-]] run inline-function-test(|#1) to [[
+]] run inline-function-test-2(|#1) to [[
 class MyClass {
 	public:
 		int add(int x, int y) {
@@ -57,35 +57,3 @@ int main() {
     x + y;
 }
 ]]
-
-// Correctly referencing attributes/methods from outside of a class is not implemented yet.
-//
-//test simple reference to public attribute inlined outside of class [[
-//class MyClass {
-//	public:
-//		int x = 2;
-//		int get_x() {
-//    		return x;
-//		}
-//};
-//
-//int main() {
-//    MyClass bar;
-//    [[bar.get_x()]];
-//}
-//]] run inline-function-test(|#1) to [[
-//class MyClass {
-//  public :
-//    int x = 2; 
-//    int get_x( )
-//    {
-//      return x;
-//    }
-//} ;
-//
-//int main( )
-//{
-//  MyClass bar;
-//  x;
-//}
-//]]

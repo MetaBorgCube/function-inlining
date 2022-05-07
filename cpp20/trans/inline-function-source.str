@@ -2,9 +2,8 @@ module inline-function-source
 // File added by Loek
 
 imports 
-  statixruntime
-  statix/api
-  statix/runtime/renaming
+  statix/runtime/analysis
+  libspoofax/ui/dialogs
 
 rules  
   inline-function-action(find-call, get-subterms-from-call, get-subterms-from-definition, 

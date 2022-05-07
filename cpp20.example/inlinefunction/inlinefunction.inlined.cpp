@@ -1,28 +1,26 @@
-class MyClass {
-  private :
-    int x = 5; public :
-    int myfunc( )
+int foo(int x)
+{
+  x = x * 2;
+  if(x < 10)
     {
-      return x;
+      int x = x;
+      x = x * 2;
+      if(x < 10)
+        {
+          foo(x);
+          x = x - 1;
+        }
+      x;
+      x = x - 1;
     }
-} ;
-
-int increment(int x)
-{
   return x;
-}
-
-void test( )
-{
-  return ;
 }
 
 int main( )
 {
   int x = 5;
   {
-    int x_0 = x;
-    x_0;
+    foo(2);
     x = 6;
   }
 }

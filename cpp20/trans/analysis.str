@@ -13,8 +13,8 @@ imports
   signatures/-
   desugar
   renaming
-  inline-function-cpp20
-  inline-function-cpp20-2
+//  inline-function-cpp20
+//  inline-function-cpp20-2
 
 signature
 sorts NamedFile

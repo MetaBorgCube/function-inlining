@@ -7,6 +7,8 @@ imports
   libspoofax/editor/refactoring/-
   pp/cpp20-parenthesize
   pp/cpp20-pp
+  
+//  debug-spoofax-core-files/test-construct-text
 
 rules
 
@@ -47,3 +49,9 @@ rules
 rules
   
   construct-textual-change = construct-textual-change(pp-partial-cpp20-string, parenthesize, override-reconstruction, resugar)
+  // TODO: Remove below:
+  test-construct-textual-change = construct-textual-change(pp-partial-cpp20-string, parenthesize, override-reconstruction, resugar)
+
+  
+  
+  

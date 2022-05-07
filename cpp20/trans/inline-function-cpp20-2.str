@@ -1,23 +1,27 @@
 module inline-function-cpp20-2
-// File added by Loek
 
 imports
   analysis
-  pp
-  cpp20
-  inline-function-source-2
   injections/c-syntax-injections
+  inline-function-source-2
 
 rules
   inline-function-test-2(|selected-term): ast -> <inline-function(ls-extract-data, ls-make-decs,
     ls-get-last-return, ls-is-return, ls-construct-block, ls-is-exp-language, ls-is-statement,
     ls-insert-before, ls-remove-exp, ls-fix-semantic-errors, editor-analyze
     |<new-iset>)> (selected-term, ast)
-  
+
   inline-function-menu-action-2 = inline-function-action(pp-debug, ls-extract-data, ls-make-decs,
     ls-get-last-return, ls-is-return, ls-construct-block, ls-is-exp-language, ls-is-statement,
     ls-insert-before, ls-remove-exp, ls-fix-semantic-errors, editor-analyze
     | "inlined.cpp")
+   
+    // At the time of writing, construct-textual-change doesn't work because of issues with origin tracking.
+    // In case it is fixed, the line below can be uncommented to replace the line above.
+//  inline-function-menu-action-2 = inline-function-action(construct-textual-change, ls-extract-data, ls-make-decs,
+//    ls-get-last-return, ls-is-return, ls-construct-block, ls-is-exp-language, ls-is-statement,
+//    ls-insert-before, ls-remove-exp, ls-fix-semantic-errors, editor-analyze
+//    | "inlined.cpp")
   
   
   ls-extract-data(|_): t -> (t, name, args)
@@ -31,7 +35,7 @@ rules
   ls-make-decs: (params, args) -> decs
     where
       decs := <zip(\ (ParamDecl1(type, name), value) 
-                      -> Decl(type, [InitDecl(name, value)]) \)> 
+                      -> Decl(type, [InitDecl(name, value)]) \)>
                 (params, args)
                    
   ls-get-last-return(|[Void()]): Compound(body) -> (body', ())
@@ -77,8 +81,10 @@ rules
     where
       ast-t := <oncetd(<conc> <split-fetch(?Exp(exp))>)> ast
 
-  // We don't fix any Statix analysis errors so we only accept 0 errors.
-  ls-fix-semantic-errors(|[]): ast -> ast
+  ls-fix-semantic-errors(|analysis-errors, old-ast): new-ast -> fixed-ast
+    where
+        (duplicate-term, _) := <fetch-elem(where(Snd; string-ends-with(|"already defined")))> analysis-errors
+      ; fixed-ast := <rename-duplicate-declaration> (old-ast, new-ast, duplicate-term)
       
       
       

@@ -1,4 +1,4 @@
-module testing-rename
+module debug-spoofax-core-files/testing-rename
 
 imports
     libstratego-lib
@@ -202,7 +202,9 @@ rules // Step 6: Reconstruct Program
 
   construct-renamed-file(construct-textual-change): (path, ast, renamed-ast) -> (path, text)
     where
-      (_, _, text) := <construct-textual-change> (ast, renamed-ast)
+      <debug> ast
+      ; <debug> renamed-ast
+      ; (_, _, text) := <construct-textual-change> (ast, renamed-ast)
 
   has-changed: (_, _, renamed-ast) -> <id>
     where
