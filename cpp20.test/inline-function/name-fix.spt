@@ -1,0 +1,195 @@
+module inline-function/duplicate-definitions
+
+language cpp20
+
+/*
+Tests that duplicate definitions are rejected
+*/
+
+test rename capturing definition (parameter) [[
+int foo(int x) {
+    return 1;
+}
+
+int main() {
+    int x = 5;
+    {
+      [[foo(2)]];
+      x = 6;
+    }
+}
+]] run inline-function-test-2(|#1) to [[
+int foo(int x)
+{
+  return 1;
+}
+
+int main( )
+{
+  int x = 5;
+  {
+    int x_0 = 2;
+    1;
+    x = 6;
+  }
+}
+]]
+
+test rename capturing definition (regular definition) [[
+int foo() {
+    int x;
+    return 1;
+}
+
+int main() {
+    int x = 5;
+    {
+      [[foo()]];
+      x = 6;
+    }
+}
+]] run inline-function-test-2(|#1) to [[
+int foo()
+{
+  int x;
+  return 1;
+}
+
+int main( )
+{
+  int x = 5;
+  {
+    int x_0;
+    1;
+    x = 6;
+  }
+}
+]]
+
+test rename capturing definition with references (parameter) [[
+int foo(int x) {
+    x = x * 2;
+    x = 5 + x;
+    return x;
+}
+
+int main() {
+    int x = 5;
+    {
+      [[foo(2)]];
+      x = 6;
+    }
+}
+]] run inline-function-test-2(|#1) to [[
+int foo(int x)
+{
+  x = x * 2;
+  x = 5 + x;
+  return x;
+}
+
+int main( )
+{
+  int x = 5;
+  {
+    int x_0 = 2;
+    x_0 = x_0 * 2;
+    x_0 = 5 + x_0;
+    x_0;
+    x = 6;
+  }
+}
+]]
+
+test do not rename shadowing definition without capture [[
+int foo(int x) {
+    return x;
+}
+
+int main() {
+    int x = 5;
+    {
+      [[foo(2)]];
+    }
+    x = 6;
+}
+]] run inline-function-test-2(|#1) to [[
+int foo(int x)
+{
+  return x;
+}
+
+int main( )
+{
+  int x = 5;
+  {
+    int x = 2;
+    x;
+  }
+  x = 6;
+}
+]]
+
+test rename capturing definition with references (regular definition) [[
+int foo() {
+    int x = 5;
+    x = x * 2;
+    x = 5 + x;
+    return x;
+}
+
+int main() {
+    int x = 5;
+    {
+      [[foo()]];
+      x = 6;
+    }
+}
+]] run inline-function-test-2(|#1) to [[
+int foo()
+{
+  int x = 5;
+  x = x * 2;
+  x = 5 + x;
+  return x;
+}
+
+int main( )
+{
+  int x = 5;
+  {
+    int x_0 = 5;
+    x_0 = x_0 * 2;
+    x_0 = 5 + x_0;
+    x_0;
+    x = 6;
+  }
+}
+]]
+
+test capture global definition [[
+int x = 5;
+
+int foo(int x) {
+  return 1;
+}
+
+int main() {
+  [[foo(2)]];
+  x = 6;
+}
+]] run inline-function-test-2(|#1) to [[
+int x = 5;
+
+int foo(int x)
+{
+  return 1;
+}
+
+int main( )
+{
+  int x_0 = 2;
+  1;
+  x = 6;
+}
+]]

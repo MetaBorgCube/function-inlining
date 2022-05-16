@@ -1,0 +1,37 @@
+TranslationUnit(
+  [ Decl(
+      [ ClassType(
+          Class(){TermIndex("classes.cpp", 2)}
+        , "Foo"{TermIndex("classes.cpp", 3)}
+        , ClassBody(
+            ClassBodyDeclarationDefault([]{TermIndex("classes.cpp", 5)}){TermIndex("classes.cpp", 6)}
+          , [ ClassBodyDeclaration(
+                Private(){TermIndex("classes.cpp", 7)}
+              , [Decl([Int(){TermIndex("classes.cpp", 8)}]{TermIndex("classes.cpp", 12)}, [Declarator(NoPointer(){TermIndex("classes.cpp", 13)}, IdDecl("y"{TermIndex("classes.cpp", 14)}){TermIndex("classes.cpp", 15)}){TermIndex("classes.cpp", 16)}]{TermIndex("classes.cpp", 20)}){TermIndex("classes.cpp", 21)}]{TermIndex("classes.cpp", 25)}
+              ){TermIndex("classes.cpp", 26)}
+            , ClassBodyDeclaration(
+                Public(){TermIndex("classes.cpp", 27)}
+              , [ FunDef(
+                    [Int(){TermIndex("classes.cpp", 28)}]{TermIndex("classes.cpp", 32)}
+                  , Declarator(
+                      NoPointer(){TermIndex("classes.cpp", 33)}
+                    , FunDeclTyped(
+                        IdDecl("test"{TermIndex("classes.cpp", 34)}){TermIndex("classes.cpp", 35)}
+                      , ParamList(
+                          [ParamDecl1([Int(){TermIndex("classes.cpp", 36)}]{TermIndex("classes.cpp", 40)}, Declarator(NoPointer(){TermIndex("classes.cpp", 41)}, IdDecl("x"{TermIndex("classes.cpp", 42)}){TermIndex("classes.cpp", 43)}){TermIndex("classes.cpp", 44)}){TermIndex("classes.cpp", 45)}]{TermIndex("classes.cpp", 48)}
+                        ){TermIndex("classes.cpp", 49)}
+                      ){TermIndex("classes.cpp", 50)}
+                    ){TermIndex("classes.cpp", 51)}
+                  , []{TermIndex("classes.cpp", 53)}
+                  , Compound([Return(DerefProj(This(){TermIndex("classes.cpp", 54)}, "y"{TermIndex("classes.cpp", 55)}){TermIndex("classes.cpp", 56)}){TermIndex("classes.cpp", 58)}]{TermIndex("classes.cpp", 62)}){TermIndex("classes.cpp", 63)}
+                  ){TermIndex("classes.cpp", 64)}
+                ]{TermIndex("classes.cpp", 68)}
+              ){TermIndex("classes.cpp", 69)}
+            ]{TermIndex("classes.cpp", 73)}
+          ){TermIndex("classes.cpp", 74)}
+        ){TermIndex("classes.cpp", 75)}
+      ]{TermIndex("classes.cpp", 80)}
+    , []{TermIndex("classes.cpp", 82)}
+    ){TermIndex("classes.cpp", 83)}
+  ]{TermIndex("classes.cpp", 87)}
+){TermIndex("classes.cpp", 88)}

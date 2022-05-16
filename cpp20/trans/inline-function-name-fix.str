@@ -1,0 +1,244 @@
+module inline-function-name-fix
+
+imports
+  statix/runtime/analysis // Required for sorts like AnalyzeSingle()
+  
+
+signature
+  sorts
+    NameFixID
+  constructors
+    NameFixID : string -> NameFixID
+
+rules
+  name-fix(editor-analyze, add-error, ls-fix-semantic-errors|
+    ast-s, analysis-s, vs, inline-errors, new-ids): ast-t -> ast-t-fixed
+    where      
+      // Try to fix Static Semantics Violations.
+        (ast-t', analysis-t) := <fix-semantic-errors(editor-analyze, ls-fix-semantic-errors|
+                                  analysis-s, inline-errors, ast-s)> ast-t
+      
+      // Construct rho for ast-s.
+      ; (rho-s := <get-rho(|new-ids)> (ast-s, analysis-s)
+        <+ <add-error(|"Failed to construct rho-s", [])> inline-errors)
+      // Construct rho for ast-t.
+      ; (rho-t := <get-rho(|new-ids)> (ast-t', analysis-t)
+        <+ <add-error(|"Failed to construct rho-t", [])> inline-errors)
+      
+      // Get domain of rho.      
+      ; dom-rho-s := <map(Fst)> rho-s
+      ; dom-rho-t := <map(Fst)> rho-t
+      
+      // Necessary for inlining recursive function calls:
+      // Check that no non-inlined terms reference an inlined declaration.
+      // This is necessary because name-fix gives the inlined declarations the same ID as the original ones.
+      ; ast-t'' := <fix-references-to-inlined-declarations(|analysis-t, rho-s)> ast-t'
+      ; if not(<eq> (ast-t'', ast-t'))
+        // If names have changed, we need to re-analyze so we need to restart name-fix.
+        then ast-t-fixed := <name-fix(editor-analyze, add-error, ls-fix-semantic-errors|ast-s, 
+              analysis-s, vs, inline-errors, new-ids)> ast-t''
+        
+        // Else we can continue
+        else
+          // For every 'v' in dom-rho-t, check for capture.
+          (capture-relations := <collect(check-capture(|dom-rho-s, rho-s, rho-t))> dom-rho-t
+        <+ <add-error(|"Something went wrong while checking relations for capture during name-fix",
+                      [("rho-s", rho-s), ("rho-t", rho-t)])> inline-errors)
+        
+        ; if <eq> (capture-relations, [])
+          // There are no captured relations, so return AST unchanged.
+          then ast-t-fixed := ast-t'
+          // Create the set of capturing declarations (set = no duplicates).
+          else codomain-capture-relations := <make-set> <map(Snd)> capture-relations
+            // Rename all capturing declarations and IDs that reference them in rho-s (original AST).
+            ; (ast-t-renamed := <foldr(!ast-t', rename-capture(|rho-s))> codomain-capture-relations
+            <+ <add-error(|"Something went wrong while renaming capture relations", 
+                           [("capture-relations", capture-relations), ("ast-t", ast-t')]
+                         )> inline-errors)
+            
+            ; (not(<eq> (ast-t-renamed, ast-t'))
+            <+ <add-error(|"Name-fix found capture but did not change any identifier. Aborted to avoid an infinite loop.", 
+                           [("ast", ast-t')])> inline-errors)
+            // Apply name-fix again to see if capture is fixed in the new AST.
+            ; ast-t-fixed := <name-fix(editor-analyze, add-error, ls-fix-semantic-errors|ast-s, 
+                analysis-s, vs, inline-errors, new-ids)> ast-t-renamed 
+          end
+        end
+           
+
+  
+  fix-semantic-errors(editor-analyze, ls-fix-semantic-errors|old-analysis, inline-errors, 
+    original-ast): previous-ast -> (new-ast, new-analysis)
+    where
+      // Get scope graph of the transformed AST.
+        (new-ast', new-analysis', analysis-errors) := 
+          <re-analyze-ast-single-file(editor-analyze|old-analysis, inline-errors)> previous-ast
+      // Check if the Statix analysis returned errors.
+      ; if <eq> (analysis-errors, [])
+        then 
+          // If not, return the annotated AST and the new scope graph.
+            new-ast := new-ast'
+          ; new-analysis := new-analysis'
+        else
+          // If errors were found, apply language-specific strategy to fix them.
+            (fixed-ast := <ls-fix-semantic-errors(|analysis-errors, original-ast)> new-ast'
+            <+ <add-error(|"ls-fix-semantic-errors failed to fix one of the errors found by the Statix analysis", 
+                          [("errors", analysis-errors), ("ast", new-ast')]
+                         )> inline-errors)
+          // Make sure that the AST was changed to prevent an infinite loop.
+          ; if <eq> (fixed-ast, new-ast')
+            then <add-error(|"ls-fix-semantic-errors did not change the AST. Aborted to avoid an infinte loop.", 
+                             [("errors", analysis-errors), ("input-ast", new-ast')])> inline-errors
+            end
+          // Then recursively call this strategy to re-analyze the fixed AST.
+          ; (new-ast, new-analysis) :=
+              <fix-semantic-errors(editor-analyze, ls-fix-semantic-errors|new-analysis', 
+                inline-errors, original-ast)> fixed-ast
+        end
+  
+  re-analyze-ast-single-file(editor-analyze|old-analysis, inline-errors): ast 
+    -> (ast-reannotated, analysis, analysis-errors)
+    where
+        <getfirst(?TermIndex(path, _))> <get-annotations> ast
+      ; input := AnalyzeSingle([(path, Changed(ast, old-analysis))], (), ())
+      ; AnalysisResult([(_, Full(ast-reannotated, FileAnalysis(_, analysis), 
+          analysis-errors, _, _))]) := <editor-analyze> input
+      <+ (<iset-add(|<concat-strings>
+        ["> ERROR: Something went wrong while analyzing the changed AST:\n",
+        "    ", <write-to-string> ast,
+        "\n\n"]
+      )> inline-errors; fail)
+      
+
+  get-rho(|new-ids): (ast, analysis) -> rho
+    where
+      rho := <collect(get-ref-relation(|analysis, new-ids))> ast
+  
+  
+  // The scope graph of the original AST does not contain the annotated IDs.
+  // Therefore, we need the hashtable that maps original terms to their annotated variant,
+  // to be able to retrieve their IDs.
+  get-ref-relation(|analysis, new-ids): t -> (v-r, v-d)
+    where
+        is-string
+      ; v-r := <get-name-fix-id> t
+      ; t-d := <get-ref-helper> <stx-get-ast-ref(|analysis)> t
+      ; (v-d := <get-name-fix-id> t-d
+      <+ v-d := <get-name-fix-id> <hashtable-get(|t-d)> new-ids)
+
+  
+  get-name-fix-id: t -> v
+    where
+      NameFixID(v) := <fetch-elem(?NameFixID(_))> <get-annotations> t
+  
+  
+  // In some languages the Ref() relation returns a list of terms instead of a single term.
+  // If this is the case we assume that the first entry in the list is the correct definition.
+  get-ref-helper: [t|_] -> t
+  get-ref-helper: t -> t
+  
+  
+  check-capture(|dom-rho-s, rho-s, rho-t): v -> (v, v-d)
+    where
+      if <elem> (v, dom-rho-s)
+      then not(<eq> (<rho-lookup(|v)> rho-s, <rho-lookup(|v)> rho-t))
+        // Definition 1.1 of name-fix is violated.
+        ; v-d := <rho-lookup(|v)> rho-t
+      else not(<eq> (v, <rho-lookup(|v)> rho-t))
+        // Definition 1.2 of name-fix is violated.
+        ; v-d := <rho-lookup(|v)> rho-t
+      end
+  
+  rho-lookup(|v-r): rho -> <Snd> <fetch-elem(where(Fst; ?v-r))> rho
+
+
+  // In case a recursive call is inlined, it could happen that an inlined declaration captures a 
+  // referencewithout name-fix noticing, because the inlined declaration has the same ID as the 
+  // original declaration. This strategy fixes that, because it renames references where a 
+  // non-inlined term references an inlined term, using the "inlined" annotation.
+  fix-references-to-inlined-declarations(|analysis, rho-s): new-ast -> fixed-ast
+    where
+      // Get all TermIndeces from terms with "inlined" that are referenced by terms without "inlined".
+        to-fix := <collect-om(where(is-string; 
+                                    // Not annotated with "inlined"
+                                    not(inlined-fun-def-term));
+                              // Get referenced declaration, annotated with "inlined"
+                              stx-get-ast-ref(|analysis); get-ref-helper;
+                              where(inlined-fun-def-term);
+                              // Collect its NameFixID
+                              get-name-fix-id)> new-ast
+      ; fixed-ast := <foldr(!new-ast, rename-capture-inlined-only(|rho-s))> to-fix
+  
+  // Helper strategy for fix-references-to-inlined-declarations.
+  inlined-fun-def-term: t -> t
+    where
+      <elem> ("inlined", <get-annotations> t)
+  
+  // Helper strategy for fix-references-to-inlined-declarations. Renames terms.
+  rename-capture-inlined-only(|rho-s): (v-d, ast) -> new-ast
+    where
+        x-d := <collect-one(where(get-name-fix-id; ?v-d); inlined-fun-def-term)> ast
+      ; new-name := <local-newname> x-d
+      // Rename all declarations with the same ID that are annotated with "inlined".
+      ; ast' := <topdown(try(has-id(|v-d); 
+                             inlined-fun-def-term;
+                             preserve-annos(!new-name)))> ast
+      // Rename all declarations with the same ID that are annotated with "inlined".
+      ; new-ast := <topdown(try(references-id(|v-d, rho-s);
+                                inlined-fun-def-term;
+                                preserve-annos(!new-name)))> ast'
+      
+  
+  rename-capture(|rho-s): (v-d, ast) -> new-ast
+    where
+        x-d := <collect-one(where(get-name-fix-id; ?v-d))> ast
+      ; new-name := <local-newname> x-d
+      // Rename all declarations with the same ID.
+      ; ast' := <topdown(try(has-id(|v-d); 
+                             preserve-annos(!new-name)))> ast
+      // Rename all intended references to the same ID.
+      ; new-ast := <topdown(try(references-id(|v-d, rho-s);
+                                preserve-annos(!new-name)))> ast'
+  
+  has-id(|v): t -> t
+    where
+      <eq> (v, <get-name-fix-id> t)
+  
+  references-id(|v-d, rho): t -> t
+    where
+        v-r := <get-name-fix-id> t
+      ; <eq> (v-d, <rho-lookup(|v-r)> rho)
+  
+//  original-fun-def-term: t -> t
+//    where
+//      <elem> ("original", <get-annotations> t)
+      
+      
+  
+  rename-duplicate-declaration: (old-ast, new-ast, duplicate-term) -> fixed-ast
+    where
+        analysis := <stx-get-ast-analysis> old-ast
+      // Sometimes the actual string value of the term is lost in an analysis error and only the 
+      // annotations are preserved. We use the TermIndex to find the complete term x-d in new-ast.
+      ; x-d := <collect-one(where(stx--get-ast-index; 
+                                  \x -> <eq> (x, <stx--get-ast-index> duplicate-term)\))> new-ast
+      ; new-name := <local-newname> x-d // Generate a new name.
+      ; v-d := <get-name-fix-id> x-d // Get the NameFixID of the declaration.
+      // Find the termindices of terms in the original ast with the same NameFixID,
+      // because stx-get-ast-ref results will not have a NameFixID annotation.
+      ; termindices-d := <collect-om(where(is-string; get-name-fix-id; \v -> <eq> (v, v-d)\); 
+                                     stx--get-ast-index)> old-ast
+      // Find the NameFixIDs of terms that reference x-d in the original AST.
+      ; vs-to-change := [v-d | <collect-om(where(is-string;
+                                                 stx-get-ast-ref(|analysis); get-ref-helper;
+                                                 stx--get-ast-index;
+                                                 \x -> <elem> (x, termindices-d)\);
+                                           get-name-fix-id)> old-ast]
+      // Rename all terms with a vs-to-change NameFixID in the new AST.
+      ; fixed-ast := <topdown(try(where(is-string; get-name-fix-id;
+                                        \v -> <elem> (v, vs-to-change)\);
+                                  where(inlined-fun-def-term);
+                                  !new-name))> new-ast
+  
+  
+  

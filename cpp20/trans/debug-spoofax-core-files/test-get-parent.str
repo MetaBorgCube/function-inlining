@@ -1,0 +1,17 @@
+module debug-spoofax-core-files/test-get-parent
+
+imports
+  pp
+  statix/runtime/analysis
+
+rules
+  debug-get-parent: (selected-term, _, ast, path, _) -> result
+    where
+        analysis := <stx-get-ast-analysis> ast
+      ; <debug> <collect-om(where(is-string; stx-get-ast-ref(|analysis)))> ast
+      ; result := <construct-textual-change> (ast, ast)
+//      ; <debug> ast
+//      ; <debug> selected-term
+//      ; <debug> <get-parent> selected-term
+      
+  get-parent = prim("SSL_EXT_get_parent", <id>)

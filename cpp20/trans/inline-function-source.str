@@ -2,9 +2,8 @@ module inline-function-source
 // File added by Loek
 
 imports 
-  statixruntime
-  statix/api
-  statix/runtime/renaming
+  statix/runtime/analysis
+  libspoofax/ui/dialogs
 
 rules  
   inline-function-action(find-call, get-subterms-from-call, get-subterms-from-definition, 
@@ -47,7 +46,7 @@ rules
         )
 
       // Get the scope graph.
-      ; analysis := <stx-get-ast-analysis> selected
+      ; analysis := <stx-get-ast-analysis> ast
       
       // Extract the name- and the argument subterms from the function call term.
       ; ((function-name, args) := <get-subterms-from-call> selected
@@ -93,7 +92,7 @@ rules
         <+ (<iset-add(|"> ERROR: Something went wrong while inserting the function body.\n\n")> inline-errors ; fail))
       
       // Re-analyze the AST.
-      ; <getfirst(?TermIndex(path, _))> <get-annotations> t
+      ; <getfirst(?TermIndex(path, _))> <get-annotations> t // We can't take the argument path since SPT tests don't provide that argument.
       ; Full(ast-reannotated, FileAnalysis(_, new-analysis), analysis-errors, _, _) := <re-analyze-ast-single(editor-analyze|path, analysis, inline-errors)> ast-inlined
 	  	   
       // Check if reference annotations have been preserved.

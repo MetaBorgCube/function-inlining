@@ -9,7 +9,7 @@ void foo() {
 int main() {
     [[foo()]];
 }
-]] run inline-function-test(|#1) to [[
+]] run inline-function-test-2(|#1) to [[
 void foo( )
 {
 }
@@ -27,7 +27,7 @@ void foo() {
 int main() {
     [[foo()]];
 }
-]] run inline-function-test(|#1) to [[
+]] run inline-function-test-2(|#1) to [[
 void foo( )
 {
   return ;
@@ -46,7 +46,7 @@ void foo() {
 int main() {
     [[foo()]];
 }
-]] run inline-function-test(|#1) to [[
+]] run inline-function-test-2(|#1) to [[
 void foo( )
 {
   2;
@@ -67,7 +67,7 @@ void foo() {
 int main() {
     [[foo()]];
 }
-]] run inline-function-test(|#1) to [[
+]] run inline-function-test-2(|#1) to [[
 void foo( )
 {
   2;

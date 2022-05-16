@@ -1,0 +1,262 @@
+module statix/namespaces
+
+language cpp20
+
+test nested namespace [[
+namespace a {
+  namespace b {
+    namespace c {
+      int x;
+    }
+  }
+}
+
+int main() {
+  return a::b::c::x;
+}
+]] analysis succeeds
+
+test incorrect namespace parent [[
+namespace a {
+  char* x;
+  namespace b {
+    int y;
+  }
+}
+
+int main() {
+  a::b::x;
+}
+]] analysis fails
+
+test using namespace [[
+namespace a {
+  char* x;
+  namespace b {
+    int y;
+  }
+}
+
+int main() {
+  using namespace a::b;
+  y;
+}
+]] analysis succeeds
+
+test unnamed namespace visibility 1 [[
+namespace a {
+  char* x;
+  namespace {
+    int y;
+  }
+  int fun() {
+    return y;
+  }
+}
+
+int main() {
+  using namespace a;
+  x;
+}
+]] analysis succeeds
+
+test unnamed namespace visibility 2 [[
+namespace a {
+  char* x;
+  namespace {
+    int y;
+  }
+  int fun() {
+    return y;
+  }
+}
+
+int main() {
+  using namespace a;
+  y;
+}
+]] analysis succeeds
+
+test unnamed namespace visibility 3 [[
+namespace a {
+  char* x;
+  inline namespace {
+    int y;
+  }
+  int fun() {
+    return y;
+  }
+}
+
+int main() {
+  using namespace a;
+  y;
+}
+]] analysis succeeds
+
+test using namespace visibility 1 [[
+namespace a {
+  char* x;
+}
+
+namespace b {
+  using namespace a;
+  char* fun() {
+    return x;
+  }
+}
+
+int main() {
+  a::x;
+}
+]] analysis succeeds
+
+test using namespace visibility 2 [[
+namespace a {
+  char* x;
+}
+
+namespace b {
+  using namespace a;
+  char* fun() {
+    return x;
+  }
+}
+
+int main() {
+  b::x;
+}
+]] analysis succeeds
+
+test namespace inheritance 1 [[
+namespace a {
+  char* x;
+}
+
+namespace b {
+  using namespace a;
+  char* fun() {
+    return x;
+  }
+}
+
+int main() {
+  using namespace b::a;
+  x;
+}
+]] analysis fails
+
+test namespace inheritance 2 [[
+namespace a {
+  char* x;
+}
+
+namespace b {
+  using namespace a;
+  char* fun() {
+    return x;
+  }
+}
+
+int main() {
+  using namespace a;
+  x;
+}
+]] analysis succeeds
+
+test namespace inheritance 3 [[
+namespace a {
+  char* x;
+}
+
+namespace b {
+  namespace a {
+    int fun() {
+      x;
+    }
+  }
+}
+
+int main() {
+  using namespace b::a;
+  x;
+}
+]] analysis fails
+
+test namespace alias [[
+namespace a::b {
+  int x;
+}
+
+namespace c {
+  namespace d = a::b;
+}
+
+int main() {
+  return c::d::x;
+}
+]] analysis succeeds
+
+test parent traversal [[
+namespace a {
+  int x;
+  namespace b {
+    int y;
+  }
+}
+
+int main() {
+  using namespace a::b;
+  x;
+}
+]] analysis fails
+
+test using declaration [[
+namespace xyz {
+  int x;
+  namespace abc {
+    int y;
+    class Test {
+    public:
+      int x;
+    };
+  }
+}
+
+int main() {
+  using xyz::abc::Test;
+  using xyz::x;
+  using xyz::abc::y;
+  Test object;
+  object.x + y + x;
+}
+]] analysis succeeds
+
+test using function [[
+namespace xyz {
+  void f() {
+    1 + 1;
+  }
+}
+int main() {
+  using xyz::f;
+  f();
+}
+]] analysis succeeds
+
+
+test using other namespaces [[
+namespace xyz {
+  void f() {
+    1 + 1;
+  }
+}
+
+namespace abc {
+  using xyz::f;
+}
+
+int main() {
+  abc::f();
+}
+]] analysis succeeds

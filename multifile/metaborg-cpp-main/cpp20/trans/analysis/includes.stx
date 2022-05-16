@@ -1,0 +1,33 @@
+module analysis/includes
+
+imports
+  signatures/cpp20-sig
+  signatures/c-preprocessor-sig
+  analysis/declarations
+
+signature
+sorts NamedFile
+constructors
+  NamedFile : string * Start -> NamedFile
+
+signature
+relations
+  File : string -> scope
+
+rules
+  preprocDirectiveOk : scope * PreprocessorDirective
+
+  preprocDirectiveOk(s, Include1(name)) :-
+    resolveFile(s, name).
+  preprocDirectiveOk(s, Include2(name)) :-
+    preprocDirectiveOk(s, Include1(name)).
+
+  resolveFile : scope * string
+
+  resolveFile(s, x) :- {s_file x_ref}
+    query File
+      filter (P | Q)* and { x' :- x == x' }
+        min $ < P and true
+          in s |-> [(_, (x_ref, s_file))] | error$[file [x] does not exist],
+    s-I->s_file,
+    @x.ref := x_ref.

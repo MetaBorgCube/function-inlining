@@ -1,4 +1,4 @@
-module inline-function/name_binding_unfixable
+module inline-function/unreachable-references
 
 language cpp20
 
@@ -10,6 +10,7 @@ test reference to private attribute inlined outside of class [[
 class MyClass {
 	private:
 		int x = 2;
+	public:
 		int get_x() {
     		return x;
 		}
@@ -19,5 +20,5 @@ int main() {
     MyClass bar;
     [[bar.get_x()]];
 }
-]] run inline-function-test(|#1) fails
+]] run inline-function-test-2(|#1) fails
 

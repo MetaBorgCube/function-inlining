@@ -21,7 +21,7 @@ language:
   sdf:
     pretty-print: cpp20
     sdf2table: java
-    jsglr-version: layout-sensitive
+    #jsglr-version: layout-sensitive
     placeholder:
       prefix: "$"
   stratego:

@@ -2,7 +2,7 @@ module renaming
 
 imports
   statixruntime
-  statix/runtime/renaming
+  debug-spoofax-core-files/testing-rename
 
   pp
   analysis

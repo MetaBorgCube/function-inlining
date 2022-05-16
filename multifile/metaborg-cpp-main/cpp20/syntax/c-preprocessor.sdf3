@@ -1,0 +1,57 @@
+module c-preprocessor
+
+imports c-lexical
+
+lexical sorts WS FileName1 FileName2 TokenSequence TokenSeqOneLine Token TokenChar Slash
+lexical syntax
+  WS        = [\ \t]*
+  Token     = TokenChar+
+  TokenChar = ~[\ \t\r\n\\]
+  TokenChar = Slash
+  Slash     = [\\]
+  
+  TokenSeqOneLine = Token ([\ \t]+ Token)*
+  
+  TokenSequence = TokenSeqOneLine (WS [\\] [\r]? [\n] WS TokenSeqOneLine)*
+  
+  FileName1 = ~[\<\>\n]+
+  
+  FileName2 = ~[\<\"\n]+
+  
+lexical restrictions
+  Token -/- ~[\ \t\r\n]
+  Slash -/- [\r\n]
+  TokenSequence -/- ~[\n]
+  
+sorts PreprocessorDirective ExternalDeclaration // (already defined in c-syntax)
+context-free syntax
+
+  ExternalDeclaration = PreprocessorDirective
+  
+context-free syntax
+
+  PreprocessorDirective.Define = 
+    <#define <ID> <TokenSequence>> {layout(0.first.line == 3.first.line)}
+
+  PreprocessorDirective.DefineFunLike = 
+    <#define <ID> (<{ID ","}*> ) <TokenSequence>> {layout(0.first.line == 6.first.line)}
+
+  PreprocessorDirective.DefineVarargFunLike = 
+    <#define <ID> (<{ID ","}*> ...) <TokenSequence>> {layout(0.first.line == 7.first.line)}
+  
+  PreprocessorDirective.Undef = 
+    <#undef <ID>> {layout(0.first.line == 2.first.line)}
+    
+  PreprocessorDirective.Include1 =
+    [#include <[FileName1]>] {layout(0.first.line == 4.first.line)}
+    
+  PreprocessorDirective.Include2 =
+    [#include "[FileName2]"] {layout(0.first.line == 4.first.line)}
+
+context-free priorities
+    PreprocessorDirective.DefineVarargFunLike
+  > PreprocessorDirective.DefineFunLike
+  > PreprocessorDirective.Define
+
+template options
+  tokenize: "#)"

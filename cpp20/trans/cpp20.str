@@ -6,6 +6,8 @@ imports
   pp
   outline
   analysis
+  inline-function-cpp20-2
+  debug-spoofax-core-files/test-get-parent
 
 rules // Debugging
   

@@ -1,12 +1,12 @@
-module inline-function/name_binding_fix
+module inline-function/duplicate-definitions
 
 language cpp20
 
 /*
-Tests the rename fix for conflicting inlined definitions
+Tests that duplicate definitions are rejected
 */
 
-test reference to term outside of function definition [[
+test rename duplicate definition when both are used 1 [[
 int y = 5;
 
 int foo(int x) {
@@ -18,7 +18,7 @@ int main() {
     [[foo(2)]];
     x = 6;
 }
-]] run inline-function-test(|#1) to [[
+]] run inline-function-test-2(|#1) to [[
 int y = 5;
 
 int foo(int x)
@@ -35,7 +35,7 @@ int main( )
 }
 ]]
 
-test rename duplicate definition when both are used [[
+test rename duplicate definition when both are used 2 [[
 int increment(int x) {
     return x + 1;
 }
@@ -45,7 +45,7 @@ int main() {
     [[increment(2)]];
     x = 6;
 }
-]] run inline-function-test(|#1) to [[
+]] run inline-function-test-2(|#1) to [[
 int increment(int x)
 {
   return x + 1;
@@ -69,7 +69,7 @@ int main() {
     int x = 5;
     [[increment(2)]];
 }
-]] run inline-function-test(|#1) to [[
+]] run inline-function-test-2(|#1) to [[
 int increment(int x)
 {
   return x + 1;
@@ -93,7 +93,7 @@ int main() {
     [[increment(2)]];
     x = 2;
 }
-]] run inline-function-test(|#1) to [[
+]] run inline-function-test-2(|#1) to [[
 int increment(int x)
 {
   return 1;
@@ -102,7 +102,7 @@ int increment(int x)
 int main( )
 {
   int x = 5;
-  int x_1 = 2;
+  int x_0 = 2;
   1;
   x = 2;
 }
@@ -119,7 +119,7 @@ int main() {
     [[increment()]];
     x = 2;
 }
-]] run inline-function-test(|#1) to [[
+]] run inline-function-test-2(|#1) to [[
 int increment()
 {
   int x;
@@ -129,7 +129,7 @@ int increment()
 int main( )
 {
   int x = 5;
-  int x_1;
+  int x_0;
   1;
   x = 2;
 }
@@ -144,7 +144,7 @@ int main() {
     int x = 5;
     [[increment(2)]];
 }
-]] run inline-function-test(|#1) to [[
+]] run inline-function-test-2(|#1) to [[
 int increment(int x)
 {
   return 1;
@@ -168,7 +168,7 @@ int main() {
     int x = 5;
     [[increment()]];
 }
-]] run inline-function-test(|#1) to [[
+]] run inline-function-test-2(|#1) to [[
 int increment()
 {
   int x;

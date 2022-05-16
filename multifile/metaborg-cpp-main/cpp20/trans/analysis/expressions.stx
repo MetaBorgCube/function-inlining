@@ -1,0 +1,278 @@
+module analysis/expressions
+
+imports
+  analysis/classes
+  analysis/declarations
+  analysis/types
+  analysis/templates
+  analysis/lambda
+  analysis/statements
+  analysis/util
+
+rules
+  typeOfExp : scope * Exp -> TYPE
+  typeOfExps maps typeOfExp(*, list(*)) = list(*)
+
+  // TODO: do something with U/L/LL/UL/LU/LLU/ULL suffixes
+  typeOfExp(_, Constant2Exp(IntegerConstant2Constant(_))) = INT().
+  typeOfExp(_, Constant2Exp(CharacterConstant2Constant(_))) = CHAR().
+  typeOfExp(_, Constant2Exp(FloatingConstant2Constant(_))) = FLOAT().
+  typeOfExp(_, String(_)) = POINTER(CHAR()).
+
+  typeOfExp(s, UnOp(op, e)) = T :- {Te}
+    typeOfExp(s, e) == Te,
+    typeOfUnExp(op, Te) == T.
+
+  typeOfExp(s, Comma(e1, e2)) = T :-
+    typeOfExp(s, e2) == T,
+	typeOfExp(s, e1) == _.
+  
+  typeOfExp(s, Assign(e1, AssignAdd(), e2)) = T :- {T2}
+    typeOfExp(s, e1) == T,
+    typeOfExp(s, e2) == T2,
+    typeOfAdd(T, T2) == T.
+    
+  typeOfExp(s, Assign(e1, AssignMin(), e2)) = T :- {T2}
+    typeOfExp(s, e1) == T,
+    typeOfExp(s, e2) == T2,
+    typeOfSub(T, T2) == T.
+  
+  typeOfExp(s, Assign(e1, op, e2)) = T :- {T2}
+    typeOfExp(s, e1) == T,
+    typeOfExp(s, e2) == T2,
+    lub(T, T2) == T.
+    
+  typeOfExp(s, LAnd(e1, e2)) = INT() :- {T1 T2}
+    typeOfExp(s, e1) == T1,
+    typeOfExp(s, e2) == T2,
+    scalarType(T1),
+    scalarType(T2).
+    
+  typeOfExp(s, Ior(e1, e2)) = T :- {T1 T2}
+    typeOfExp(s, e1) == T1,
+    typeOfExp(s, e2) == T2,
+    intRules(T1, T2) == T.
+    
+  typeOfExp(s, Eor(e1, e2)) = T :- {T1 T2}
+    typeOfExp(s, e1) == T1,
+    typeOfExp(s, e2) == T2,
+    intRules(T1, T2) == T.
+    
+  typeOfExp(s, And(e1, e2)) = T :- {T1 T2}
+    typeOfExp(s, e1) == T1,
+    typeOfExp(s, e2) == T2,
+    intRules(T1, T2) == T.
+    
+  typeOfExp(s, EqNeq(e1, op, e2)) = INT() :- {T1 T2}
+    typeOfExp(s, e1) == T1,
+    typeOfExp(s, e2) == T2,
+    scalarType(T1),
+    scalarType(T2).
+    
+  typeOfExp(s, Order(e1, _, e2)) = INT() :- {T1 T2}
+    typeOfExp(s, e1) == T1,
+    typeOfExp(s, e2) == T2,
+    typeOfOrder(T1, T2) == _.
+    
+  typeOfExp(s, Shift(e1, _, e2)) = T :- {T1 T2}
+    typeOfExp(s, e1) == T1,
+    intRules(T1, INT()) == T,
+    typeOfExp(s, e2) == T2,
+    intType(T2).
+    
+  typeOfExp(s, Add(e1, e2)) = T :- {T1 T2}
+    typeOfExp(s, e1) == T1,
+    typeOfExp(s, e2) == T2,
+    typeOfAdd(T1, T2) == T.
+
+  typeOfExp(s, Sub(e1, e2)) = T :- {T1 T2}
+    typeOfExp(s, e1) == T1,
+    typeOfExp(s, e2) == T2,
+    typeOfSub(T1, T2) == T.
+
+  typeOfExp(s, MulDiv(e1, _, e2)) = T :- {T1 T2}
+    typeOfExp(s, e1) == T1,
+    typeOfExp(s, e2) == T2,
+    intRules(T1, T2) == T.
+    
+  typeOfExp(s, Mod(e1, e2)) = T :- {T1 T2}
+    typeOfExp(s, e1) == T1,
+    typeOfExp(s, e2) == T2,
+    arithmeticRules(T1, T2) == T.
+    
+  typeOfExp(s, SizeofT(_)) = ULONGLONG().
+  typeOfExp(s, AlignofT(_)) = ULONGLONG().
+
+  typeOfExp(s, Null()) = POINTER(VOID()).
+
+//  TODO: improve/desugar cast syntax?    
+  typeOfExp(s, Cast(TypedefName2(ts, NoAbstractDeclarator()), e)) = T :- {declSpecs typeSpecs }
+    specQualsToDeclSpecs(ts) == declSpecs,
+    declSpecsToTypeSpecs(declSpecs) == typeSpecs,
+    typeOfType(s, typeSpecs) == T.
+  typeOfExp(s, Cast(TypedefName2(ts, AbstractDeclarator2AbstractDeclarator-OPT(a)), e)) = T :- {declSpecs typeSpecs T1 }
+    specQualsToDeclSpecs(ts) == declSpecs,
+    declSpecsToTypeSpecs(declSpecs) == typeSpecs,
+    typeOfType(s, typeSpecs) == T1,
+    typeOfAbsDecl(s, T1, a) == T.
+
+//  Since every function is also defined as a variable, this seems redundant
+//  TODO: function overloading? 
+//  typeOfExp(s, Call(Var(id), args)) = Tr :- {Tf Ta Ta'}
+//    typeOfFun(s, id) == Tf,
+//    typeOfExps(s, args) == Ta',
+//    funArgsOk(Tf, Ta'),
+//    typeOfFunCall(Tf) == Tr.
+  
+  typeOfExp(s, ConstructorCall(id, args)) = Tr :- { Tf Ta Ta' }
+    typeOfTypedef(s, NamespaceTypeID([], id)) == Tr@CLASS(_, _, _, _, _, _, _),
+    typeOfFun(s, NamespaceID([], id)) == Tf,
+    typeOfExps(s, args) == Ta',
+    funArgsOk(Tf, Ta').
+
+  typeOfExp(s, Call(callee, args)) = Tr :- {Tf Ta Ta'}
+    typeOfExp(s, callee) == Tf, // i.e. int -> int
+    typeOfExps(s, args) == Ta',
+    funArgsOk(Tf, Ta'),
+    typeOfFunCall(Tf) == Tr.
+    
+  typeOfExp(s, Proj(e@This(), var)) = T :- {s_pri}
+    typeOfExp(s, e) == CLASS(_, s_pri, _, _, _, _, _),
+    typeOfClassMember(s_pri, var) == T.
+     
+  typeOfExp(s, DerefProj(e@This(), var)) = T :- {s_pri}
+    typeOfExp(s, e) == POINTER(CLASS(_, s_pri, _, _, _, _, _)),
+    typeOfClassMember(s_pri, var) == T.
+    
+  typeOfExp(s, Proj(e, var)) = T :- {TS}
+    e != This(),
+    typeOfExp(s, e) == TS,
+    typeOfClassMem(s, TS, var) == T.
+     
+  typeOfExp(s, DerefProj(e, var)) = T :- {TS}
+    e != This(),
+    typeOfExp(s, e) == POINTER(TS),
+    typeOfClassMem(s, TS, var) == T.
+     
+  typeOfExp(s, StaticProj(t, Var(NamespaceID(_, id)))) = T :- { s_pub_stat }
+    typeOfTypedef(s, NamespaceTypeID([], t)) == CLASS(_, _, _, _, _, _, s_pub_stat),
+    typeOfClassMember(s_pub_stat, id) == T.
+    
+//  typeOfExp(s, StaticProj(t, stat@StaticProj(_, _))) = T :- { s_pub_stat }
+//    typeOfTypedef(s, NamespaceTypeID([], t)) == CLASS(_, _, _, _, _, _, s_pub_stat),
+//    typeOfExp(s_pub_stat, stat) == T. 
+    
+  typeOfExp(s, Var(id)) = T :-
+    typeOfVar(s, id) == T.
+
+  typeOfExp(s, templ@Template(e, vals)) = T :- {Tt}
+    typeOfExp(s, e) == Tt@TEMPLATE(_, _, _, _),
+    typeOfTemplate(s, Tt, templ) == T.
+    
+  typeOfExp(s, This()) = T :-
+    query This
+      filter (Q | P | C)* and { x :- true }
+        min $ < P and true
+          in s |-> [(_, (T))] | error $[Cannot use the keyword this outside of a class, scope [s]].
+
+  typeOfExp(s, Lambda(cap, [], ret, body)) = typeOfExp(s, Lambda(cap, [LambdaParams(ParamList([]))], ret, body)).
+  typeOfExp(s, Lambda(cap, param, [], body)) = typeOfExp(s, Lambda(cap, param, [LambdaReturn([TypeSpecifier2DeclarationSpecifier(Auto())], NoPointer())], body)).
+  typeOfExp(s, l@Lambda(cap, [param], [return], body)) = T :- {s_fun paramIDs paramTs retT}
+    new s_fun,
+    s_fun-P->s,
+    capturesOk(s, cap),
+    lambdaParamsOk(s_fun, param) == (paramIDs, paramTs),
+    lambdaReturnOk(s, return) == retT,
+    !Return[retT] in s_fun,
+    compStmtOk(s_fun, body),
+    declareVars(s_fun, paramIDs, paramTs),
+    T == FUN(zippedFunTypes(paramIDs, paramTs), unpackAutoType(retT)).
+
+rules
+  typeOfExpOpt : scope * Exp-OPT -> TYPE
+  typeOfExpOpt(_, NoExp()) = _.
+  typeOfExpOpt(s, Exp2Exp-OPT(e)) = T :-
+    typeOfExp(s, e) == T.
+  
+rules funArgsOk : TYPE * list(TYPE)
+
+  funArgsOk(FUN(Tas, _), Tps) :- { IDs Ts } 
+    unzippedFunTypes(Tas) == (IDs, Ts),
+    lubs(Ts, Tps) == Ts | error $[Function expects types [Ts], not [Tps]].
+    
+  funArgsOk(VARFUN([], _), _).
+  funArgsOk(VARFUN([(id, Ta) | Tas], Tr), [Tp | Tps]) :-
+    lub(Ta, Tp) == Ta,
+    funArgsOk(VARFUN(Tas, Tr), Tps).
+  
+  
+rules typeOfFunCall : TYPE -> TYPE
+
+  typeOfFunCall(FUN(_, T)) = T.
+  typeOfFunCall(VARFUN(_, T)) = T.
+  typeOfFunCall(TEMPLATEPLACEHOLDER()) = TEMPLATEPLACEHOLDER().
+
+rules typeOfClassMem : scope * TYPE * ID -> TYPE
+
+  typeOfClassMem(_, STRUCT(s_struct), var) = T :-
+    typeOfStructMember(s_struct, var) == T.
+
+  typeOfClassMem(s, STRUCT_REF(s_id), var) = T :- { T1 }
+    typeOfStructOrUnion(s, s_id) == T1,
+    typeOfClassMem(s, T1, var) == T.
+
+  typeOfClassMem(_, UNION(s_union), var) = T :-
+    typeOfStructMember(s_union, var) == T.
+
+  typeOfClassMem(s, UNION_REF(u_id), var) = T :- { T1 }
+    typeOfStructOrUnion(s, u_id) == T1,
+    typeOfClassMem(s, T1, var) == T.    
+  typeOfClassMem(s, CLASS(t, s_pri, s_pro, s_pub, _, _, _), var) = T :-
+    typeOfClassMember(s_pub, var) == T.
+  typeOfClassMem(s, TEMPLATEPLACEHOLDER(), var) = TEMPLATEPLACEHOLDER().
+
+rules typeOfAdd : TYPE * TYPE -> TYPE
+  
+  typeOfAdd(T1, T2) = T :-
+    arithmeticRules(T1, T2) == T.
+  typeOfAdd(POINTER(T1), T2) = POINTER(T1) :- intType(T2).
+  typeOfAdd(T1, POINTER(T2)) = POINTER(T2) :- intType(T1).
+
+rules typeOfSub : TYPE * TYPE -> TYPE
+
+  typeOfSub(T1, T2) = T :-
+    arithmeticRules(T1, T2) == T.
+  typeOfSub(POINTER(T1), POINTER(T2)) = T1 :-
+    T1 == T2.
+  typeOfSub(POINTER(T1), T2) = POINTER(T1) :- intType(T2).
+
+rules typeOfOrder : TYPE * TYPE -> TYPE
+  typeOfOrder(T1, T2) = T :-
+    arithmeticRules(T1, T2) == T.
+  typeOfOrder(POINTER(T1), POINTER(T2)) = INT() :-
+    T1 == T2.
+
+rules
+  typeOfUnExp : UnaryOp * TYPE -> TYPE
+
+  typeOfUnExp(Sizeof(), _) = ULONGLONG. // actually size_t
+  typeOfUnExp(Alignof(), _) = ULONGLONG. // actually size_t
+  typeOfUnExp(Deref(), POINTER(T)) = T.
+  typeOfUnExp(Deref(), TEMPLATEPLACEHOLDER()) = TEMPLATEPLACEHOLDER().
+  typeOfUnExp(Addr(), T) = POINTER(T).
+  typeOfUnExp(Not(), T) = INT() :-
+    intType(T).
+    
+
+rules
+  intRules : TYPE * TYPE -> TYPE
+  intRules(T1, T2) = T :-
+    lub(T1, T2) == T,
+    intType(T).
+
+rules
+  arithmeticRules : TYPE * TYPE -> TYPE
+  arithmeticRules(T1, T2) = T:-
+    intRules(T1, T2) == T.
+  arithmeticRules(T, T) = T :-
+    arithmeticType(T).
