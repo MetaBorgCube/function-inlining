@@ -132,9 +132,9 @@ rules
       NameFixID(v) := <fetch-elem(?NameFixID(_))> <get-annotations> t
   
   
-  // In some languages the Ref() relation returns a list of terms instead of a single term.
-  // If this is the case we assume that the first entry in the list is the correct definition.
-  get-ref-helper: [t|_] -> t
+  // If a reference can be non-deterministic Statix can return a list. We need it to be 
+  // deterministic, so we only allow inlining if the list contains a single element.
+  get-ref-helper: [t] -> t
   get-ref-helper: t -> t
   
   

@@ -1,35 +1,37 @@
-module inline-function-cpp20-2
+module multi-file-inline-function-cpp20
 
 imports
   analysis
   pp
   injections/c-syntax-injections
-  inline-function-source-2
-  inline-function-name-fix
+  multi-file-inline-function-source
+  multi-file-inline-function-name-fix
 
 rules
   inline-function-test-2(|selected-term): ast -> <inline-function(ls-extract-data, ls-make-decs,
     ls-get-last-return, ls-is-return, ls-construct-block, ls-is-exp-language, ls-is-statement,
-    ls-insert-before, ls-remove-exp, ls-fix-semantic-errors, editor-analyze
+    ls-insert-before, ls-remove-exp, ls-fix-semantic-errors, editor-analyze, multi
     |<new-iset>)> (selected-term, ast)
 
   inline-function-menu-action-2 = inline-function-action(pp-debug, ls-extract-data, ls-make-decs,
     ls-get-last-return, ls-is-return, ls-construct-block, ls-is-exp-language, ls-is-statement,
-    ls-insert-before, ls-remove-exp, ls-fix-semantic-errors, editor-analyze
+    ls-insert-before, ls-remove-exp, ls-fix-semantic-errors, editor-analyze, multi
     | "inlined.cpp")
    
     // At the time of writing, construct-textual-change doesn't work because of issues with origin tracking.
     // In case it is fixed, the definition below can be uncommented to replace the definition above.
 //  inline-function-menu-action-2 = inline-function-action(construct-textual-change, ls-extract-data, ls-make-decs,
 //    ls-get-last-return, ls-is-return, ls-construct-block, ls-is-exp-language, ls-is-statement,
-//    ls-insert-before, ls-remove-exp, ls-fix-semantic-errors, editor-analyze
+//    ls-insert-before, ls-remove-exp, ls-fix-semantic-errors, editor-analyze, multi
 //    | "inlined.cpp")
   
+  // Change to "id" to enable- and "fail" to disable multi-file mode.
+  multi = id
   
-  ls-extract-data(|_): t -> (t, name, args)
+  ls-extract-data(|()): t -> (t, name, args)
     where
       <?Call(Var(NamespaceID(_, name)), args)> t
-  ls-extract-data(|_): t -> (t, name, args) 
+  ls-extract-data(|()): t -> (t, name, args) 
     where
       <?Call(Proj(_, name), args)> t
   ls-extract-data(|name): FunDef(type, Declarator(_, FunDeclTyped(IdDecl(name), ParamList(params))), _, body) -> (params, body, type)
@@ -83,10 +85,13 @@ rules
     where
       ast-t := <oncetd(<conc> <split-fetch(?Exp(exp))>)> ast
 
-  ls-fix-semantic-errors(|analysis-errors, old-ast): new-ast -> fixed-ast
+  // other-asts equals [] unless multi-file mode is enabled and there are other programs in the project.
+  // It is passed on in case the other files are needed to fix a semantic error.
+  // If it is filled, it contains (ast, tuple) entries.
+  ls-fix-semantic-errors(|analysis-errors, (old-ast, old-analysis), asts-analyses): new-ast -> fixed-ast
     where
         (duplicate-term, _) := <fetch-elem(where(Snd; string-ends-with(|"already defined")))> analysis-errors
-      ; fixed-ast := <rename-duplicate-declaration> (old-ast, new-ast, duplicate-term)
+      ; fixed-ast := <rename-duplicate-declaration> ((old-ast, old-analysis), asts-analyses, new-ast, duplicate-term)
       
       
       

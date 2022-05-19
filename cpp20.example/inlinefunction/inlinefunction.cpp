@@ -1,8 +1,11 @@
-int increment(int x) {
+#include "inlinefunction/dummy.cpp"
+
+int increment() {
     return 1;
 }
 
 int main() {
     int x = 5;
-    increment(2);
+    increment();
+    foo();
 }

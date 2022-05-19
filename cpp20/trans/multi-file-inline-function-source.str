@@ -1,10 +1,10 @@
-module inline-function-source-2
+module multi-file-inline-function-source
 // File added by Loek
 
 imports 
   statix/runtime/analysis
   libspoofax/ui/dialogs
-  inline-function-name-fix
+  multi-file-inline-function-name-fix
   
 rules
 //  inline-function-action(pp-debug, ls-extract-data, ls-make-decs, ls-get-last-return, ls-is-return,
@@ -13,7 +13,7 @@ rules
 //    |extension): (selected-term, _, ast, path, _) -> result
   inline-function-action(pp-debug, ls-extract-data, ls-make-decs, ls-get-last-return, ls-is-return,
     ls-construct-block, ls-is-exp-language, ls-is-statement, ls-insert-before, ls-remove-exp,
-    ls-fix-semantic-errors, editor-analyze
+    ls-fix-semantic-errors, editor-analyze, multi
     |extension): (selected-term, _, ast, path, _) -> result
 	 with // TODO: Replace with where
         // TODO: Replace filename with name of actual file instead of new file, such that the refactoring happens in the same file.
@@ -24,7 +24,7 @@ rules
           new-ast := <scope-local-new(inline-function(ls-extract-data, ls-make-decs,
             ls-get-last-return, ls-is-return, ls-construct-block, ls-is-exp-language, 
             ls-is-statement, ls-insert-before, ls-remove-exp, ls-fix-semantic-errors, 
-            editor-analyze
+            editor-analyze, multi
             |inline-errors))> (selected-term, ast)
         	; transformed-source-code := <pp-debug> new-ast
           // At the time of writing, construct-textual-change doesn't work because of issues with origin tracking.
@@ -43,51 +43,54 @@ rules
   // Main strategy.
   inline-function(ls-extract-data, ls-make-decs, ls-get-last-return, ls-is-return, 
     ls-construct-block, ls-is-exp-language, ls-is-statement, ls-insert-before, ls-remove-exp,
-    ls-fix-semantic-errors, editor-analyze
+    ls-fix-semantic-errors, editor-analyze, multi
     |inline-errors): (selected-term, ast) -> ast-result
     where
+      // Get the (full project) scope graph and a list of ASTs if multi-file analysis is enabled.
+      if multi
+        then asts := <get-other-asts> ast
+        else asts := []
+      end
+      ; (analysis-s := <stx-get-ast-analysis> ast
+          <+ <add-error(|"Something went wrong while retrieving the analysis of the AST.", 
+                         [("ast", ast)])> inline-errors)
+      
       // Step 0 - Annotate Identifiers with unique IDs.
       // Annotate identifier Terms with their unique IDs for name fix.
       // Also store them in the set Vs.
-        vs := <new-iset>
+      ; vs := <new-iset>
       // new-ids is needed to map the output of <stx-get-ast-ref> to the corresponding new term.
       ; new-ids := <new-hashtable>
       ; ast-s := 
           <topdown(try(is-string; generate-id(|vs, new-ids, NameFixID(<local-newname> "v"))))> ast
-      
-      
+      ; asts-s := 
+          <topdown(try(is-string; generate-id(|vs, new-ids, NameFixID(<local-newname> "v"))))> asts
+
       // Step 1 - Find Definition and Extract Data.
       // We need to explore subterms of the selected-term in case the function call is wrapped by 
       // some constructor that is not covered by the ls-extract-data rules.
-      ; (<oncetd((fun-call-term, fun-call-name, args) := <ls-extract-data(|())>)> selected-term
+      ; (<oncetd(ls-extract-data(|()); ?(fun-call-term, fun-call-name, args))> selected-term
         <+ <add-error(|"ls-extract-data failed to find a function call term in the selected term", 
                        [("term", selected-term)])> inline-errors)
-      // Ensure that the extracted terms are annotated with the correct IDs.
+      // Convert the extracted terms to their counterpart annotated with the correct IDs.
       ; fun-call-term' := <topdown(try(\ x -> <hashtable-get(|x)> new-ids \))> fun-call-term
       ; args' := <topdown(try(\ x -> <hashtable-get(|x)> new-ids \))> args
-      
-      // Get the scope graph.
-      ; (analysis := <stx-get-ast-analysis> ast
-        <+ <add-error(|"Something went wrong while retrieving the analysis of the AST.", [])> 
-              inline-errors)
       
       // Get the referenced identifier term (which should belong to the function definition).
       // Because the term returned by stx-get-ast-ref is from the old ast, it doesn't have a
       // NameFixID annotation. Get the corresponding term from the hasthable new-ids.
-      ; (fun-def-name := <hashtable-get(|
-                            <get-ref-helper> <stx-get-ast-ref(|analysis)> fun-call-name
-                         )> new-ids
+      ; (fun-def-name := <hashtable-get(|<get-ref-helper> <stx-get-ast-ref(|analysis-s)> fun-call-name
+                                       )> new-ids
         <+ <add-error(|"Something went wrong while querying the scope graph with the function call name term", 
                        [("name term", fun-call-name)])> inline-errors)
             
       // Get the function definition data.
-      ; ((params, body, ftype) := <collect-one(ls-extract-data(|fun-def-name))> ast-s
+      ; ((params, body, ftype) := <collect-one(ls-extract-data(|fun-def-name))> [ast-s|asts-s]
         <+ <add-error(|"ls-extract-data failed to find the function definition with the name term below when extracting the data", 
                        [("term", fun-def-name)])> inline-errors)
-            
       
       // Step 2 - Instantiate Parameters.
-      ; param-decs := <ls-make-decs> (params, args')
+      ; param-decs := <ls-make-decs> (<topdown(add-annotation(|"inlined"))> params, args')
       
       
       // Step 3 - Deal with Return Statements.
@@ -106,14 +109,14 @@ rules
       
       // Construct the block. 
       // Add "inlined" annotation for when inlining recursive function calls (needed to remove the original function call expression and not the inserted call).
-      ; (block := <topdown(add-annotation(|"inlined"))> <ls-construct-block> (body', param-decs)
+      ; (block := <ls-construct-block> (<topdown(add-annotation(|"inlined"))> body', param-decs)
         <+ <add-error(|"ls-construct-block failed to create a code block from the body and parameter declarations", 
                        [("body", body'), ("param-decs", param-decs)]
                      )> inline-errors)
       ; if ls-is-exp-language
         then ast-t := <oncetd(?fun-call-term'; !block)> ast-s
         else 
-          (surrounding-stmt := <get-surrounding-stmt(ls-is-statement|fun-call-term', ())> ast-s // Don't use ast-s' because it has "original" annotations, which could cause a mismatch.
+          (surrounding-stmt := <get-surrounding-stmt(ls-is-statement|fun-call-term', ())> ast-s
           <+ <add-error(|"No surrounding ls-is-statement term was found for the function call term in the ast", 
                          [("fun-call-term", fun-call-term'), ("AST", ast-s)]
                        )> inline-errors)
@@ -124,9 +127,12 @@ rules
         // If inlining is not allowed by the language engineer for the surrounding stmt (for
         // example because the call is surrounded by a loop-condition) the ast-t should be turned 
         // into () such that it is caught by the try() clause below.
-        ; try(<eq> (ast-t, ()); <add-error(|"ls-insert-before returned an empty AST", [])> 
-                                  inline-errors)
+        ; if <eq> (ast-t, ()) then <add-error(|"ls-insert-before returned an empty AST", [])> 
+                                   inline-errors end
         
+        // Check if function is void (return expression is empty).
+        // If void, remove function call according to language grammar.
+        // If not, replace function call with return expression.
         ; if <eq> (<strip-annos> return-exp', ())
           then (ast-t' := <ls-remove-exp(|fun-call-term')> ast-t
                <+ <add-error(|"ls-remove-exp failed to remove the function call", 
@@ -139,21 +145,12 @@ rules
         end
       
       // Step 5 - Check and Fix Reference Relations.
+      ; project-analysis := <get-project-analysis> // <get-project-analysis> is not part of Statix, it is defined in this file.
+      ; asts-analyses := <map(\ x -> (x, <stx-get-ast-analysis> x) \)> asts-s
       
-//      // Annotate all identifiers in the function definition with "original", such that they aren't renamed together
-//      // with their copied variants
-//      ; (ast-t'' := <oncetd(where(ls-extract-data(|fun-def-name)); 
-//                          !<topdown(try(is-string; !<add-annotation(|"original")>))>)> ast-t'
-//        <+ <add-error(|"ls-extract-data failed to find a function definition with the name below.", 
-//                       [("ast", ast-t'), ("term", fun-def-name)]
-//                     )> inline-errors)
+      ; ast-result := <name-fix(multi, editor-analyze, add-error, ls-fix-semantic-errors|
+                        (ast-s, analysis-s), asts-analyses, project-analysis, vs, new-ids, inline-errors)> ast-t'
       
-//      ; ast-result := <name-fix(editor-analyze, add-error, ls-fix-semantic-errors|
-//                        ast-s, analysis, vs, inline-errors, new-ids)> ast-t''
-      
-      ; ast-result := <name-fix(editor-analyze, add-error, ls-fix-semantic-errors|
-                        ast-s, analysis, vs, inline-errors, new-ids)> ast-t'
-            
       ; <iset-destroy> vs
       ; <hashtable-destroy> new-ids        
 
@@ -161,7 +158,7 @@ rules
   // Helper strategies to display error messages.
   display-errors: inline-errors -> ()
     where
-       all-error-strings := <concat-strings> <iset-elements> inline-errors
+       all-error-strings := <concat-strings> ["An error occurred.\n\n" | <iset-elements> inline-errors]
      ; <show-dialog(|"Inline Function Error", "Error")> all-error-strings
 
   add-error(|msg, error-tuples): errors -> ()
@@ -215,4 +212,17 @@ rules
       <one(get-surrounding-stmt(ls-is-statement|fun-call-term, last-stmt); ?result)> t
         
         
+  
+  // Multi-file analysis helper strategies below:
+  get-other-asts: ast -> asts
+    where
+      // get-project-analyzed-asts yields a list of (path, AST).
+      // We need to remove the entry (".", ()) that resembles the full project.
+      // We also need to remove the selected AST, by matching on its path.
+        path := <getfirst(?TermIndex(<id>, _))> <get-annotations> ast
+      ; asts := <filter(where(Fst; not(?"."); not(?path)); Snd)> <get-project-analyzed-asts>
+  
+  get-project-analysis: _ -> <getfirst(where(Fst; ?"."); Snd; stx-get-ast-analysis)> 
+    <get-project-analyzed-asts>
+      
       

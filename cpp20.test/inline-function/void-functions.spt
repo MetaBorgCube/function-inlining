@@ -1,4 +1,4 @@
-module inline-function/general_cases
+module inline-function/void-functions
 
 language cpp20
 
