@@ -1,8 +1,0 @@
----
-id: org.example:cpp20.example:0.1.0-SNAPSHOT
-name: cpp20
-dependencies:
-  compile:
-  - org.example:cpp20:0.1.0-SNAPSHOT
-build:
-  useBuildSystemSpec: true

@@ -2,6 +2,7 @@ module multi-file-inline-function-name-fix
 
 imports
   statix/runtime/analysis // Required for sorts like AnalyzeSingle()
+  statix/api
   
 
 signature

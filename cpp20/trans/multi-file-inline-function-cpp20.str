@@ -35,7 +35,8 @@ rules
   ls-extract-data(|()): t -> (t, name, args) 
     where
       <?Call(Proj(_, name), args)> t
-  ls-extract-data(|name): FunDef(type, Declarator(_, FunDeclTyped(IdDecl(name), ParamList(params))), _, body) -> (params, body, type)
+  ls-extract-data(|name): FunDef(type, Declarator(_, FunDeclTyped(IdDecl(name), ParamList(params))), _, body) 
+    -> (params, body, type)
     
   ls-make-decs: (params, args) -> decs
     where

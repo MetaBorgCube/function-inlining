@@ -3,6 +3,7 @@ module multi-file-inline-function-source
 
 imports 
   statix/runtime/analysis
+  statix/api
   libspoofax/ui/dialogs
   multi-file-inline-function-name-fix
   
@@ -95,7 +96,7 @@ rules
       
       // Step 3 - Deal with Return Statements.
       // ls-get-last-return only extracts and removes a return statement if applicable in the 
-      // language in question.
+      // language in question. Else, it should just return "()" as the return term.
       ; ((body', return-exp) := <ls-get-last-return(|ftype)> body
         <+ <add-error(|"ls-get-last-return failed to extract the last return statement from the body", 
                        [("body", body)])> inline-errors)
@@ -114,7 +115,7 @@ rules
                        [("body", body'), ("param-decs", param-decs)]
                      )> inline-errors)
       ; if ls-is-exp-language
-        then ast-t := <oncetd(?fun-call-term'; !block)> ast-s
+        then ast-t' := <oncetd(?fun-call-term'; !block)> ast-s
         else 
           (surrounding-stmt := <get-surrounding-stmt(ls-is-statement|fun-call-term', ())> ast-s
           <+ <add-error(|"No surrounding ls-is-statement term was found for the function call term in the ast", 
@@ -145,16 +146,17 @@ rules
         end
 
       // Step 5 - Check and Fix Reference Relations.
-      ; if multi
+      ; (if multi
         then project-analysis := <get-project-analysis> // <get-project-analysis> is not part of Statix, it is defined in this file.
           ; asts-analyses := <map(\ x -> (x, <stx-get-ast-analysis> x) \)> asts-s
         else project-analysis := ()
           ; asts-analyses := []
-        end
+        end <+ <add-error(|"get-project-analysis failed or stx-get-ast-analysis failed on an ast.", [])> inline-errors)
       
-      ; ast-result := <name-fix(multi, editor-analyze, add-error, ls-fix-semantic-errors|
+      ; (ast-result := <name-fix(multi, editor-analyze, add-error, ls-fix-semantic-errors|
                         (ast-s, analysis-s), asts-analyses, project-analysis, vs, new-ids, inline-errors)> ast-t'
-      
+          <+ <add-error(|"Name-fix failed to validate/fix the transformed AST.", [("ast", ast-t')])> inline-errors)      
+
       ; <iset-destroy> vs
       ; <hashtable-destroy> new-ids        
 
