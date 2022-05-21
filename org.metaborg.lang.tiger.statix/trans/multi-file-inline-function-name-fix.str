@@ -15,7 +15,6 @@ rules
   name-fix(multi, editor-analyze, add-error, ls-fix-semantic-errors|
     (ast-s, analysis-s), asts-analyses, project-analysis, vs, new-ids, inline-errors): ast-t -> ast-t-fixed
     where      
-      <debug> 1;
       // Analyze transformed program. Try to fix Static Semantics Violations.
       if multi
       then ((ast-t', analysis-t), asts-analyses-t) :=
@@ -26,7 +25,7 @@ rules
             (ast-s, analysis-s), inline-errors)> ast-t 
         ; asts-analyses-t := []
       end
-      ;<debug> 2
+      
       // Construct rho for ast-s.
       ; (rho-s := <mapconcat(construct-ref-relations(|new-ids))> [(ast-s, analysis-s)|asts-analyses]
         <+ <add-error(|"Failed to construct rho-s", [])> inline-errors)
@@ -192,11 +191,6 @@ rules
   
   // Change this function if FileAnalysis has more/less/other subterms in your Spoofax version.
   extract-ast-analysis: Full(ast, FileAnalysis(analysis, _), errors, _, _) -> ((ast, analysis), errors)
-//  extract-ast-analysis: Full(ast, analysis, errors, _, _) -> ((ast, analysis), errors)
-//    where
-//      <?p1#(p2)> analysis
-//      ; <debug> p1
-//      ; <debug> <length> p2
 
 
 /*************************************************************/

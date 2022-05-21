@@ -153,7 +153,7 @@ rules
           ; asts-analyses := []
         end <+ <add-error(|"get-project-analysis failed or stx-get-ast-analysis failed on an ast.", [])> inline-errors)
 
-      ;<debug> "name-fix"; ((ast-result := <name-fix(multi, editor-analyze, add-error, ls-fix-semantic-errors|
+      ; ((ast-result := <name-fix(multi, editor-analyze, add-error, ls-fix-semantic-errors|
                         (ast-s, analysis-s), asts-analyses, project-analysis, vs, new-ids, inline-errors)> ast-t')
           <+ <add-error(|"Name-fix failed to validate/fix the transformed AST.", [("ast", ast-t')])> inline-errors)
       
