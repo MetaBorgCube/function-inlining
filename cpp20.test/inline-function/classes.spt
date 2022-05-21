@@ -14,7 +14,7 @@ int main() {
     MyClass bar;
     [[bar.foo()]];
 }
-]] run inline-function-test-2(|#1) to [[
+]] run inline-function-test(|#1) to [[
 class MyClass {
   public :
     int foo( )
@@ -42,7 +42,7 @@ int main() {
     MyClass bar;
     [[bar.add(2, 3)]];
 }
-]] run inline-function-test-2(|#1) to [[
+]] run inline-function-test(|#1) to [[
 class MyClass {
 	public:
 		int add(int x, int y) {

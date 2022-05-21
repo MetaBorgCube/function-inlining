@@ -1,4 +1,6 @@
-int increment(int x)
+#include "inlinefunction/dummy.cpp"
+
+int increment( )
 {
   return 1;
 }
@@ -6,6 +8,8 @@ int increment(int x)
 int main( )
 {
   int x = 5;
-  int x_0 = 2;
-  1;
+  increment( );
+  int x_0;
+  x_0 = 3;
+  4;
 }

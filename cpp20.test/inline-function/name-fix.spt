@@ -18,7 +18,7 @@ int main() {
       x = 6;
     }
 }
-]] run inline-function-test-2(|#1) to [[
+]] run inline-function-test(|#1) to [[
 int foo(int x)
 {
   return 1;
@@ -48,7 +48,7 @@ int main() {
       x = 6;
     }
 }
-]] run inline-function-test-2(|#1) to [[
+]] run inline-function-test(|#1) to [[
 int foo()
 {
   int x;
@@ -80,7 +80,7 @@ int main() {
       x = 6;
     }
 }
-]] run inline-function-test-2(|#1) to [[
+]] run inline-function-test(|#1) to [[
 int foo(int x)
 {
   x = x * 2;
@@ -113,7 +113,7 @@ int main() {
     }
     x = 6;
 }
-]] run inline-function-test-2(|#1) to [[
+]] run inline-function-test(|#1) to [[
 int foo(int x)
 {
   return x;
@@ -145,7 +145,7 @@ int main() {
       x = 6;
     }
 }
-]] run inline-function-test-2(|#1) to [[
+]] run inline-function-test(|#1) to [[
 int foo()
 {
   int x = 5;
@@ -178,7 +178,7 @@ int main() {
   [[foo(2)]];
   x = 6;
 }
-]] run inline-function-test-2(|#1) to [[
+]] run inline-function-test(|#1) to [[
 int x = 5;
 
 int foo(int x)

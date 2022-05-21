@@ -1,0 +1,81 @@
+module inline-function/void-functions
+
+language cpp20
+
+test basic empty void function [[
+void foo() {
+}
+
+int main() {
+    [[foo()]];
+}
+]] run inline-function-test(|#1) to [[
+void foo( )
+{
+}
+
+int main( )
+{
+}
+]]
+
+test basic void function with return [[
+void foo() {
+    return;
+}
+
+int main() {
+    [[foo()]];
+}
+]] run inline-function-test(|#1) to [[
+void foo( )
+{
+  return ;
+}
+
+int main( )
+{
+}
+]]
+
+test basic void function without return [[
+void foo() {
+    2;
+}
+
+int main() {
+    [[foo()]];
+}
+]] run inline-function-test(|#1) to [[
+void foo( )
+{
+  2;
+}
+
+int main( )
+{
+  2;
+}
+]]
+
+test basic void function with expression and return [[
+void foo() {
+    2;
+    return;
+}
+
+int main() {
+    [[foo()]];
+}
+]] run inline-function-test(|#1) to [[
+void foo( )
+{
+  2;
+  return ;
+}
+
+int main( )
+{
+  2;
+}
+]]

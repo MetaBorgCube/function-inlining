@@ -1,0 +1,15 @@
+module test-get-parent
+
+imports
+  pp
+
+rules
+  debug-get-parent: (selected-term, _, ast, path, _) -> result
+    where
+      <debug> 1
+      ; result := <construct-textual-change> (ast, ast)
+      ; <debug> ast
+      ; <debug> selected-term
+      ; <debug> <get-parent> selected-term
+      
+  get-parent = prim("SSL_EXT_get_parent", <id>)
