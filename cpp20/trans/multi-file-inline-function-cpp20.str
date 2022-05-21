@@ -8,12 +8,12 @@ imports
   multi-file-inline-function-name-fix
 
 rules
-  inline-function-test-2(|selected-term): ast -> <inline-function(ls-extract-data, ls-make-decs,
+  inline-function-test(|selected-term): ast -> <inline-function(ls-extract-data, ls-make-decs,
     ls-get-last-return, ls-is-return, ls-construct-block, ls-is-exp-language, ls-is-statement,
     ls-insert-before, ls-remove-exp, ls-fix-semantic-errors, editor-analyze, multi
     |<new-iset>)> (selected-term, ast)
 
-  inline-function-menu-action-2 = inline-function-action(pp-debug, ls-extract-data, ls-make-decs,
+  inline-function-menu-action = inline-function-action(pp-debug, ls-extract-data, ls-make-decs,
     ls-get-last-return, ls-is-return, ls-construct-block, ls-is-exp-language, ls-is-statement,
     ls-insert-before, ls-remove-exp, ls-fix-semantic-errors, editor-analyze, multi
     | "inlined.cpp")
@@ -26,7 +26,8 @@ rules
 //    | "inlined.cpp")
   
   // Change to "id" to enable- and "fail" to disable multi-file mode.
-  multi = id
+//  multi = id
+  multi = fail
   
   ls-extract-data(|()): t -> (t, name, args)
     where

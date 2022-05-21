@@ -61,10 +61,10 @@ rules
       ; vs := <new-iset>
       // new-ids is needed to map the output of <stx-get-ast-ref> to the corresponding new term.
       ; new-ids := <new-hashtable>
-      ; ast-s := 
-          <topdown(try(is-string; generate-id(|vs, new-ids, NameFixID(<local-newname> "v"))))> ast
-      ; asts-s := 
-          <topdown(try(is-string; generate-id(|vs, new-ids, NameFixID(<local-newname> "v"))))> asts
+      ; (ast-s, asts-s) := 
+          <topdown(try(is-string; generate-id(|vs, new-ids, NameFixID(<local-newname> "v"))))> (ast, asts)
+//      ; asts-s := 
+//          <topdown(try(is-string; generate-id(|vs, new-ids, NameFixID(<local-newname> "v"))))> asts
 
       // Step 1 - Find Definition and Extract Data.
       // We need to explore subterms of the selected-term in case the function call is wrapped by 
@@ -143,10 +143,14 @@ rules
                             )> inline-errors)
           end
         end
-      
+
       // Step 5 - Check and Fix Reference Relations.
-      ; project-analysis := <get-project-analysis> // <get-project-analysis> is not part of Statix, it is defined in this file.
-      ; asts-analyses := <map(\ x -> (x, <stx-get-ast-analysis> x) \)> asts-s
+      ; if multi
+        then project-analysis := <get-project-analysis> // <get-project-analysis> is not part of Statix, it is defined in this file.
+          ; asts-analyses := <map(\ x -> (x, <stx-get-ast-analysis> x) \)> asts-s
+        else project-analysis := ()
+          ; asts-analyses := []
+        end
       
       ; ast-result := <name-fix(multi, editor-analyze, add-error, ls-fix-semantic-errors|
                         (ast-s, analysis-s), asts-analyses, project-analysis, vs, new-ids, inline-errors)> ast-t'

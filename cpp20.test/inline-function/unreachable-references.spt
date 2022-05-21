@@ -20,5 +20,5 @@ int main() {
     MyClass bar;
     [[bar.get_x()]];
 }
-]] run inline-function-test-2(|#1) fails
+]] run inline-function-test(|#1) fails
 

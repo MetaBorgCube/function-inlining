@@ -4,5 +4,5 @@ menus
   menu: "Refactoring"
   
   action: "Rename" = rename-menu-action
-  action: "Inline Function" = inline-function-menu-action-2 (openeditor)
+  action: "Inline Function" = inline-function-menu-action (openeditor)
   action: "Debugging" = debug-get-parent

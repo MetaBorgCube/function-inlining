@@ -24,7 +24,7 @@ rules
             (ast-s, analysis-s), inline-errors)> ast-t 
         ; asts-analyses-t := []
       end
-      
+
       // Construct rho for ast-s.
       ; (rho-s := <mapconcat(construct-ref-relations(|new-ids))> [(ast-s, analysis-s)|asts-analyses]
         <+ <add-error(|"Failed to construct rho-s", [])> inline-errors)
@@ -57,7 +57,7 @@ rules
           else codomain-capture-relations := <make-set> <map(Snd)> capture-relations
             // Rename all capturing declarations and IDs that reference them in rho-s (original AST).
             ; (ast-t-renamed := <foldr(!ast-t', rename-capture(|rho-s))> codomain-capture-relations
-            <+ <add-error(|"Something went wrong while renaming capture relations", 
+            <+ <add-error(|"Something went wrong while renaming capture relations. Maybe an identifier from another file captured a reference.", 
                            [("capture-relations", capture-relations), ("ast-t", ast-t')]
                          )> inline-errors)
             ; (not(<eq> (ast-t-renamed, ast-t'))
@@ -112,11 +112,11 @@ rules
     -> (ast', analysis', analysis-errors)
     where
         <getfirst(?TermIndex(path, _))> <get-annotations> ast
-        
+
       ; input := AnalyzeSingle([(path, Changed(ast, analysis))], (), ())
       
-      ; AnalysisResult(result) := <editor-analyze> input
-      
+      ; AnalysisResult([(_, result)]) := <editor-analyze> input
+
       ; ((ast', analysis'), analysis-errors) := <extract-ast-analysis> result
   
   // Multi-file fix semantic errors.
