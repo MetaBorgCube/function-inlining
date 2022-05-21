@@ -191,11 +191,6 @@ rules
   
   // Change this function if FileAnalysis has more/less/other subterms in your Spoofax version.
   extract-ast-analysis: Full(ast, FileAnalysis(analysis, _), errors, _, _) -> ((ast, analysis), errors)
-//  extract-ast-analysis: Full(ast, analysis, errors, _, _) -> ((ast, analysis), errors)
-//    where
-//      <?p1#(p2)> analysis
-//      ; <debug> p1
-//      ; <debug> <length> p2
 
 
 /*************************************************************/
