@@ -1,0 +1,62 @@
+module multi-file-inlinefunction-tiger
+
+imports
+  pp
+  analysis
+  injections/Tiger-injections
+  multi-file-inline-function-source
+
+rules
+  inline-function-test(|selected-term): ast -> <inline-function(ls-extract-data, ls-make-decs,
+    ls-get-last-return, ls-is-return, ls-construct-block, ls-is-exp-language, ls-is-statement,
+    ls-insert-before, ls-remove-exp, ls-fix-semantic-errors, editor-analyze, multi
+    |<new-iset>)> (selected-term, ast)
+
+  inline-function-menu-action = inline-function-action(pp-debug, ls-extract-data, ls-make-decs,
+    ls-get-last-return, ls-is-return, ls-construct-block, ls-is-exp-language, ls-is-statement,
+    ls-insert-before, ls-remove-exp, ls-fix-semantic-errors, editor-analyze, multi
+    | "inlined.tig")
+   
+    // At the time of writing, construct-textual-change doesn't work because of issues with origin tracking.
+    // In case it is fixed, the definition below can be uncommented to replace the definition above.
+//  inline-function-menu-action-2 = inline-function-action(construct-textual-change, ls-extract-data, ls-make-decs,
+//    ls-get-last-return, ls-is-return, ls-construct-block, ls-is-exp-language, ls-is-statement,
+//    ls-insert-before, ls-remove-exp, ls-fix-semantic-errors, editor-analyze, multi
+//    | "inlined.cpp")
+  
+  // Change to "id" to enable- and "fail" to disable multi-file mode.
+//  multi = id
+  multi = fail
+
+  ls-extract-data(|()): t -> (t, name, args)
+    where
+      <?Call(name, args)> t
+  ls-extract-data(|name): FunDec(name, params, type, body) -> (params, body, type)
+  
+  ls-make-decs: (params, args) -> decs
+    where
+      decs := <zip(\ (FArg(name, type), value) -> VarDec(name, type, value) \)> (params, args)
+  
+  // There is no return statement in Tiger so we just return the same body and "()" as the return.
+  ls-get-last-return(|_): body -> (body, ())
+  
+  // There is no return statement in Tiger so a return match should always fail.
+  ls-is-return = fail
+  
+  // In the grammar a Let-body exists of a list of expressions, 
+  // whereas a function body is only a single expression term.
+  // Therefore we need to wrap a list around the body term.
+  ls-construct-block: (body, params) -> Let(params, [body])
+  
+  ls-is-exp-language = id
+  
+  // The three language-specific strategies below are only required for a statement language.
+  ls-is-statement = fail
+  ls-insert-before = fail
+  ls-remove-exp = fail
+  
+  // We don't know of any semantic errors in Tiger that we can fix here.
+  ls-fix-semantic-errors = fail
+
+  
+  
