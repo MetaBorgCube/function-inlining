@@ -1,4 +1,4 @@
-module multi-file-inlinefunction-tiger
+module multi-file-inline-function-tiger
 
 imports
   pp

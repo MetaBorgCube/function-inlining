@@ -32,6 +32,7 @@ rules
           // In case it is fixed, the line below can be uncommented to replace the line above.
 //        	; (_, _, transformed-source-code) := <construct-textual-change> (ast, new-ast)
         	; result := (filename, transformed-source-code)
+          ; <show-dialog(|"Inline Function", "Info")> <strcat> ("The Function Call has been inlined in file: \n> ", filename)
         ) <+ (
           <display-errors> inline-errors
           ; result := None() // Errors occurred so don't change the program.

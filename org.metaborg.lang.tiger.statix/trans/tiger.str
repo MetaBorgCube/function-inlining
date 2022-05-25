@@ -8,7 +8,7 @@ imports
   analysis
   injections/Tiger-injections
   renaming // Added by Loek
-  multi-file-inlinefunction-tiger // Added by Loek
+  multi-file-inline-function-tiger // Added by Loek
   test-get-parent // Added by Loek
 
 rules // Debugging

@@ -5,4 +5,4 @@ menus
   
   action: "Rename" = rename-menu-action
   action: "Inline Function" = inline-function-menu-action (openeditor)
-  action: "Debugging" = debug-get-parent
+//  action: "Debugging" = debug-get-parent

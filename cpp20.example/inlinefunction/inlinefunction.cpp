@@ -1,12 +1,14 @@
-//#include "inlinefunction/dummy.cpp"
-//
-//int increment() {
-//    return 1;
-//}
-//
-//int main() {
-//    int x = 5;
-//    increment();
-//    foo();
-//}
-int main() {}
+class MyClass {
+  private:
+    int x = 2;
+  public:
+    int get_x() {
+        return x;
+    }
+};
+
+int main() {
+    MyClass bar;
+    bar.get_x();
+}
+
