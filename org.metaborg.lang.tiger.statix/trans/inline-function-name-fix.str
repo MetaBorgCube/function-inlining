@@ -1,4 +1,4 @@
-module multi-file-inline-function-name-fix
+module inline-function-name-fix
 
 imports
   statix/runtime/analysis // Required for sorts like AnalyzeSingle()
@@ -25,7 +25,7 @@ rules
             (ast-s, analysis-s), inline-errors)> ast-t 
         ; asts-analyses-t := []
       end
-
+      
       // Construct rho for ast-s.
       ; (rho-s := <mapconcat(construct-ref-relations(|new-ids))> [(ast-s, analysis-s)|asts-analyses]
         <+ <add-error(|"Failed to construct rho-s", [])> inline-errors)

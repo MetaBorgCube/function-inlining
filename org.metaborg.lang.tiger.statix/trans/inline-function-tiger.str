@@ -1,10 +1,10 @@
-module multi-file-inline-function-tiger
+module inline-function-tiger
 
 imports
   pp
   analysis
   injections/Tiger-injections
-  multi-file-inline-function-source
+  inline-function-source
 
 rules
   inline-function-test(|selected-term): ast -> <inline-function(ls-extract-data, ls-make-decs,

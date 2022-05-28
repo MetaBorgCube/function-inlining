@@ -1,11 +1,11 @@
-module multi-file-inline-function-cpp20
+module inline-function-cpp20
 
 imports
   analysis
   pp
   injections/c-syntax-injections
-  multi-file-inline-function-source
-  multi-file-inline-function-name-fix
+  inline-function-source
+  inline-function-name-fix
 
 rules
   inline-function-test(|selected-term): ast -> <inline-function(ls-extract-data, ls-make-decs,
