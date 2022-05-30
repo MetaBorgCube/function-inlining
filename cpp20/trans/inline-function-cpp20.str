@@ -9,19 +9,19 @@ imports
 
 rules
   inline-function-test(|selected-term): ast -> <inline-function(ls-extract-data, ls-make-decs,
-    ls-get-last-return, ls-is-return, ls-construct-block, ls-is-exp-language, ls-is-statement,
+    ls-fix-control-flow, ls-is-return, ls-construct-block, ls-is-exp-language, ls-is-statement,
     ls-insert-before, ls-remove-exp, ls-fix-semantic-errors, editor-analyze, multi
     |<new-iset>)> (selected-term, ast)
 
   inline-function-menu-action = inline-function-action(pp-debug, ls-extract-data, ls-make-decs,
-    ls-get-last-return, ls-is-return, ls-construct-block, ls-is-exp-language, ls-is-statement,
+    ls-fix-control-flow, ls-is-return, ls-construct-block, ls-is-exp-language, ls-is-statement,
     ls-insert-before, ls-remove-exp, ls-fix-semantic-errors, editor-analyze, multi
     | "inlined.cpp")
    
     // At the time of writing, construct-textual-change doesn't work because of issues with origin tracking.
     // In case it is fixed, the definition below can be uncommented to replace the definition above.
 //  inline-function-menu-action-2 = inline-function-action(construct-textual-change, ls-extract-data, ls-make-decs,
-//    ls-get-last-return, ls-is-return, ls-construct-block, ls-is-exp-language, ls-is-statement,
+//    ls-fix-control-flow, ls-is-return, ls-construct-block, ls-is-exp-language, ls-is-statement,
 //    ls-insert-before, ls-remove-exp, ls-fix-semantic-errors, editor-analyze, multi
 //    | "inlined.cpp")
   
@@ -44,11 +44,11 @@ rules
                       -> Decl(type, [InitDecl(name, value)]) \)>
                 (params, args)
                    
-  ls-get-last-return(|[Void()]): Compound(body) -> (body', ())
+  ls-fix-control-flow(|[Void()]): Compound(body) -> (body', ())
     where
       (body', Return(NoExp())) := <split-init-last> body
-  ls-get-last-return(|[Void()]): Compound(body) -> (body, ())
-  ls-get-last-return(|_): Compound(body) -> (body', return-exp)
+  ls-fix-control-flow(|[Void()]): Compound(body) -> (body, ())
+  ls-fix-control-flow(|_): Compound(body) -> (body', return-exp)
     where
       (body', Return(return-exp)) := <split-init-last> body
   

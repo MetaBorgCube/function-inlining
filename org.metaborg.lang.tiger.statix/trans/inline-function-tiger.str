@@ -8,19 +8,19 @@ imports
 
 rules
   inline-function-test(|selected-term): ast -> <inline-function(ls-extract-data, ls-make-decs,
-    ls-get-last-return, ls-is-return, ls-construct-block, ls-is-exp-language, ls-is-statement,
+    ls-fix-control-flow, ls-is-return, ls-construct-block, ls-is-exp-language, ls-is-statement,
     ls-insert-before, ls-remove-exp, ls-fix-semantic-errors, editor-analyze, multi
     |<new-iset>)> (selected-term, ast)
 
   inline-function-menu-action = inline-function-action(pp-debug, ls-extract-data, ls-make-decs,
-    ls-get-last-return, ls-is-return, ls-construct-block, ls-is-exp-language, ls-is-statement,
+    ls-fix-control-flow, ls-is-return, ls-construct-block, ls-is-exp-language, ls-is-statement,
     ls-insert-before, ls-remove-exp, ls-fix-semantic-errors, editor-analyze, multi
     | "inlined.tig")
    
     // At the time of writing, construct-textual-change doesn't work because of issues with origin tracking.
     // In case it is fixed, the definition below can be uncommented to replace the definition above.
 //  inline-function-menu-action-2 = inline-function-action(construct-textual-change, ls-extract-data, ls-make-decs,
-//    ls-get-last-return, ls-is-return, ls-construct-block, ls-is-exp-language, ls-is-statement,
+//    ls-fix-control-flow, ls-is-return, ls-construct-block, ls-is-exp-language, ls-is-statement,
 //    ls-insert-before, ls-remove-exp, ls-fix-semantic-errors, editor-analyze, multi
 //    | "inlined.cpp")
   
@@ -38,7 +38,7 @@ rules
       decs := <zip(\ (FArg(name, type), value) -> VarDec(name, type, value) \)> (params, args)
   
   // There is no return statement in Tiger so we just return the same body and "()" as the return.
-  ls-get-last-return(|_): body -> (body, ())
+  ls-fix-control-flow(|_): body -> (body, ())
   
   // There is no return statement in Tiger so a return match should always fail.
   ls-is-return = fail

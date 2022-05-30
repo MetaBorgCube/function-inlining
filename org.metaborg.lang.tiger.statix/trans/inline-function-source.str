@@ -8,11 +8,11 @@ imports
   inline-function-name-fix
   
 rules
-//  inline-function-action(pp-debug, ls-extract-data, ls-make-decs, ls-get-last-return, ls-is-return,
+//  inline-function-action(pp-debug, ls-extract-data, ls-make-decs, ls-fix-control-flow, ls-is-return,
 //    ls-construct-block, ls-is-exp-language, ls-is-statement, ls-insert-before, ls-remove-exp,
 //    ls-fix-semantic-errors, editor-analyze
 //    |extension): (selected-term, _, ast, path, _) -> result
-  inline-function-action(pp-debug, ls-extract-data, ls-make-decs, ls-get-last-return, ls-is-return,
+  inline-function-action(pp-debug, ls-extract-data, ls-make-decs, ls-fix-control-flow, ls-is-return,
     ls-construct-block, ls-is-exp-language, ls-is-statement, ls-insert-before, ls-remove-exp,
     ls-fix-semantic-errors, editor-analyze, multi
     |extension): (selected-term, _, ast, path, _) -> result
@@ -23,7 +23,7 @@ rules
       ;(
         (
           new-ast := <scope-local-new(inline-function(ls-extract-data, ls-make-decs,
-            ls-get-last-return, ls-is-return, ls-construct-block, ls-is-exp-language, 
+            ls-fix-control-flow, ls-is-return, ls-construct-block, ls-is-exp-language, 
             ls-is-statement, ls-insert-before, ls-remove-exp, ls-fix-semantic-errors, 
             editor-analyze, multi
             |inline-errors))> (selected-term, ast)
@@ -43,7 +43,7 @@ rules
 
 
   // Main strategy.
-  inline-function(ls-extract-data, ls-make-decs, ls-get-last-return, ls-is-return, 
+  inline-function(ls-extract-data, ls-make-decs, ls-fix-control-flow, ls-is-return, 
     ls-construct-block, ls-is-exp-language, ls-is-statement, ls-insert-before, ls-remove-exp,
     ls-fix-semantic-errors, editor-analyze, multi
     |inline-errors): (selected-term, ast) -> ast-result
@@ -96,10 +96,10 @@ rules
       
       
       // Step 3 - Deal with Return Statements.
-      // ls-get-last-return only extracts and removes a return statement if applicable in the 
+      // ls-fix-control-flow only extracts and removes a return statement if applicable in the 
       // language in question.
-      ; ((body', return-exp) := <ls-get-last-return(|ftype)> body
-        <+ <add-error(|"ls-get-last-return failed to extract the last return statement from the body", 
+      ; ((body', return-exp) := <ls-fix-control-flow(|ftype)> body
+        <+ <add-error(|"ls-fix-control-flow failed to extract the last return statement from the body", 
                        [("body", body)])> inline-errors)
       ; return-exp' := <topdown(add-annotation(|"inlined"))> return-exp
       ; (<topdown(not(ls-is-return))> body'

@@ -276,7 +276,7 @@ rules
     where
         x-d := <collect-one(where(get-name-fix-id; ?v-d))> ast
       ; new-name := <local-newname> <strip-annos> x-d
-      // Rename all declarations with the same ID.
+      // Rename the declarations with the same ID.
       ; ast' := <topdown(try(has-id(|v-d); 
                              preserve-annos(!new-name)))> ast
       // Rename all intended references to the same ID.
