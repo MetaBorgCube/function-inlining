@@ -16,8 +16,8 @@ rules
     ls-construct-block, ls-is-exp-language, ls-is-statement, ls-insert-before, ls-remove-exp,
     ls-fix-semantic-errors, editor-analyze, multi
     |extension): (selected-term, _, ast, path, _) -> result
-	 with // TODO: Replace with where
-        // TODO: Replace filename with name of actual file instead of new file, such that the refactoring happens in the same file.
+   with // TODO: Replace with where
+        // TODO: Replace 'filename' with 'path' instead of a new file, such that the refactoring happens in the same file.
         filename := <guarantee-extension(|extension)> path // Filename to store new program in.
       ; inline-errors := <new-iset>
       ;(
@@ -27,12 +27,12 @@ rules
             ls-is-statement, ls-insert-before, ls-remove-exp, ls-fix-semantic-errors, 
             editor-analyze, multi
             |inline-errors))> (selected-term, ast)
-        	; transformed-source-code := <pp-debug> new-ast
+          ; transformed-source-code := <pp-debug> new-ast
           // At the time of writing, construct-textual-change doesn't work because of issues with origin tracking.
           // In case it is fixed, the line below can be uncommented to replace the line above.
-//        	; (_, _, transformed-source-code) := <construct-textual-change> (ast, new-ast)
-        	; result := (filename, transformed-source-code)
-        	; <show-dialog(|"Inline Function", "Info")> <strcat> ("The Function Call has been inlined in file: \n> ", filename)
+//          ; (_, _, transformed-source-code) := <construct-textual-change> (ast, new-ast)
+          ; result := (filename, transformed-source-code)
+          ; <show-dialog(|"Inline Function", "Info")> <strcat> ("The Function Call has been inlined in file: \n> ", filename)
         ) <+ (
           <display-errors> inline-errors
           ; result := None() // Errors occurred so don't change the program.
@@ -65,8 +65,6 @@ rules
       ; new-ids := <new-hashtable>
       ; (ast-s, asts-s) := 
           <topdown(try(is-string; generate-id(|vs, new-ids, NameFixID(<local-newname> "v"))))> (ast, asts)
-//      ; asts-s := 
-//          <topdown(try(is-string; generate-id(|vs, new-ids, NameFixID(<local-newname> "v"))))> asts
 
       // Step 1 - Find Definition and Extract Data.
       // We need to explore subterms of the selected-term in case the function call is wrapped by 
@@ -97,7 +95,7 @@ rules
       
       // Step 3 - Deal with Return Statements.
       // ls-fix-control-flow only extracts and removes a return statement if applicable in the 
-      // language in question.
+      // language in question. Else, it should just return "()" as the return term.
       ; ((body', return-exp) := <ls-fix-control-flow(|ftype)> body
         <+ <add-error(|"ls-fix-control-flow failed to extract the last return statement from the body", 
                        [("body", body)])> inline-errors)
@@ -153,11 +151,11 @@ rules
         else project-analysis := ()
           ; asts-analyses := []
         end <+ <add-error(|"get-project-analysis failed or stx-get-ast-analysis failed on an ast.", [])> inline-errors)
-
-      ; ((ast-result := <name-fix(multi, editor-analyze, add-error, ls-fix-semantic-errors|
-                        (ast-s, analysis-s), asts-analyses, project-analysis, vs, new-ids, inline-errors)> ast-t')
-          <+ <add-error(|"Name-fix failed to validate/fix the transformed AST.", [("ast", ast-t')])> inline-errors)
       
+      ; (ast-result := <name-fix(multi, editor-analyze, add-error, ls-fix-semantic-errors|
+                        (ast-s, analysis-s), asts-analyses, project-analysis, vs, new-ids, inline-errors)> ast-t'
+          <+ <add-error(|"Name-fix failed to validate/fix the transformed AST.", [("ast", ast-t')])> inline-errors)      
+
       ; <iset-destroy> vs
       ; <hashtable-destroy> new-ids        
 

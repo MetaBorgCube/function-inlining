@@ -1,14 +1,7 @@
-class MyClass {
-  private:
-    int x = 2;
-  public:
-    int get_x() {
-        return x;
-    }
-};
+#include "inlinefunction/dummy.cpp"
 
 int main() {
-    MyClass bar;
-    bar.get_x();
+    int x = 2;
+    foo(5);
 }
 

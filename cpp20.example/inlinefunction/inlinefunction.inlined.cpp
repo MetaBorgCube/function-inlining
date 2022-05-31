@@ -1,11 +1,10 @@
-int increment(int x)
-{
-  return x + 1;
-}
+#include "inlinefunction/dummy.cpp"
 
 int main( )
 {
-  int x = 0;
-  int x_0 = x;
-  x_0 + 1;
+  int x = 2;
+  int x_0 = 5;
+  int x_1;
+  x_1 = 3;
+  4;
 }

@@ -26,8 +26,8 @@ rules
 //    | "inlined.cpp")
   
   // Change to "id" to enable- and "fail" to disable multi-file mode.
-//  multi = id
-  multi = fail
+  multi = id
+//  multi = fail
   
   ls-extract-data(|()): t -> (t, name, args)
     where

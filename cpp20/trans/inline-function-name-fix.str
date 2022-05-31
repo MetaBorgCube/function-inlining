@@ -18,10 +18,10 @@ rules
       // Analyze transformed program. Try to fix Static Semantics Violations.
       if multi
       then ((ast-t', analysis-t), asts-analyses-t) :=
-          <fix-semantic-errors-multi-file(editor-analyze, ls-fix-semantic-errors|
+          <fix-semantic-errors-multi-file(editor-analyze, ls-fix-semantic-errors, add-error|
             (ast-s, analysis-s), asts-analyses, project-analysis, inline-errors)> ast-t
       else (ast-t', analysis-t) :=
-          <fix-semantic-errors-single-file(editor-analyze, ls-fix-semantic-errors|
+          <fix-semantic-errors-single-file(editor-analyze, ls-fix-semantic-errors, add-error|
             (ast-s, analysis-s), inline-errors)> ast-t 
         ; asts-analyses-t := []
       end
@@ -76,12 +76,15 @@ rules
 /* Re-analysis Rules */
 /*********************/
 rules
-  fix-semantic-errors-single-file(editor-analyze, ls-fix-semantic-errors|
+  fix-semantic-errors-single-file(editor-analyze, ls-fix-semantic-errors, add-error|
     (old-ast, old-analysis), inline-errors): previous-ast -> (new-ast, new-analysis)
     where
       // Get scope graph of the transformed AST.
-        (new-ast', new-analysis', analysis-errors) := 
+        ((new-ast', new-analysis', analysis-errors) := 
           <re-analyze-ast-single-file(editor-analyze)> (previous-ast, old-analysis)
+          <+ <add-error(|"Failed to analyze the transformed AST", 
+                          [("new-ast", previous-ast)]
+                         )> inline-errors)
       // Check if the Statix analysis returned errors.
       ; if <eq> (analysis-errors, [])
         then 
@@ -101,7 +104,7 @@ rules
             end
           // Then recursively call this strategy to re-analyze the fixed AST.
           ; (new-ast, new-analysis) :=
-              <fix-semantic-errors-single-file(editor-analyze, ls-fix-semantic-errors|
+              <fix-semantic-errors-single-file(editor-analyze, ls-fix-semantic-errors, add-error|
                 (old-ast, old-analysis), inline-errors)> fixed-ast
         end
   
@@ -112,23 +115,24 @@ rules
   re-analyze-ast-single-file(editor-analyze): (ast, analysis) 
     -> (ast', analysis', analysis-errors)
     where
-        <getfirst(?TermIndex(path, _))> <get-annotations> ast
-
-      ; input := AnalyzeSingle([(path, Changed(ast, analysis))], (), ())
+        input := AnalyzeSingle([(<get-path> ast, Changed(ast, analysis))], (), ())
       
       ; AnalysisResult([(_, result)]) := <editor-analyze> input
 
       ; ((ast', analysis'), analysis-errors) := <extract-ast-analysis> result
   
   // Multi-file fix semantic errors.
-  fix-semantic-errors-multi-file(editor-analyze, ls-fix-semantic-errors|
+  fix-semantic-errors-multi-file(editor-analyze, ls-fix-semantic-errors, add-error|
     (old-ast, old-analysis), asts-analyses, project-analysis, inline-errors): 
       previous-ast -> ((new-ast, new-analysis), new-asts-analyses)
     where
       // Get scope graph of the transformed AST.
-        ((new-ast', new-analysis'), new-asts-analyses', analysis-errors) :=
+        (((new-ast', new-analysis'), new-asts-analyses', analysis-errors) :=
           <re-analyze-multi-file(editor-analyze)> 
             ((previous-ast, old-analysis), asts-analyses, project-analysis)
+            <+ <add-error(|"Failed to analyze the transformed AST", 
+                          [("new-ast", previous-ast)]
+                         )> inline-errors)
       // Check if the Statix analysis returned errors.
       ; if <eq> (analysis-errors, [])
         then 
@@ -149,7 +153,7 @@ rules
             end
           // Then recursively call this strategy to re-analyze the fixed AST.
           ; ((new-ast, new-analysis), new-asts-analyses) :=
-              <fix-semantic-errors-multi-file(editor-analyze, ls-fix-semantic-errors|
+              <fix-semantic-errors-multi-file(editor-analyze, ls-fix-semantic-errors, add-error|
                 (old-ast, old-analysis), asts-analyses, project-analysis, inline-errors)> fixed-ast
         end
   

@@ -17,7 +17,7 @@ rules
     ls-fix-semantic-errors, editor-analyze, multi
     |extension): (selected-term, _, ast, path, _) -> result
 	 with // TODO: Replace with where
-        // TODO: Replace filename with name of actual file instead of new file, such that the refactoring happens in the same file.
+        // TODO: Replace 'filename' with 'path' instead of a new file, such that the refactoring happens in the same file.
         filename := <guarantee-extension(|extension)> path // Filename to store new program in.
       ; inline-errors := <new-iset>
       ;(
@@ -65,8 +65,6 @@ rules
       ; new-ids := <new-hashtable>
       ; (ast-s, asts-s) := 
           <topdown(try(is-string; generate-id(|vs, new-ids, NameFixID(<local-newname> "v"))))> (ast, asts)
-//      ; asts-s := 
-//          <topdown(try(is-string; generate-id(|vs, new-ids, NameFixID(<local-newname> "v"))))> asts
 
       // Step 1 - Find Definition and Extract Data.
       // We need to explore subterms of the selected-term in case the function call is wrapped by 
