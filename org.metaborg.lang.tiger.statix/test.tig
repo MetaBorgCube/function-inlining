@@ -1,9 +1,12 @@
 let
-  function not (j : int) : int =
-    if j = 0 then
-      1
-    else
-      0
-in
-  not(5)
-end
+  var a : int := 5
+  function get_a () : int =
+  (
+    a;
+    let
+      var a : int := 3
+    in
+      get_a()
+    end
+  )
+in end

@@ -1,0 +1,125 @@
+module inline-function/name-fix
+
+language Tiger
+
+/*
+  In Tiger you are allowed to redefine any declaration.
+  So, duplicate definition tests are not required.
+  
+  Additionally
+*/
+test shadowing definition captures higher definition [[
+let
+  var a : int := 5
+  function get_a () : int =
+    a
+in
+  let
+    var a : int := 2
+  in
+    [[get_a()]]
+  end
+end
+]] run inline-function-test(|#1) to [[
+let
+  var a : int := 5
+  function get_a( ) : int =
+    a
+in
+  let
+    var a_0 : int := 2
+  in
+    a
+  end
+end
+]]
+
+test shadowing definition with references captures higher definition [[
+let
+  var a : int := 5
+  function get_a () : int =
+    a
+in
+  let
+    var a : int := 2
+  in
+    a := [[get_a()]];
+    a := a + 1
+  end
+end
+]] run inline-function-test(|#1) to [[
+let
+  var a : int := 5
+  function get_a( ) : int =
+    a
+in
+  let
+    var a_0 : int := 2
+  in
+    a_0 := a;
+    a_0 := a_0 + 1
+  end
+end
+]]
+
+test multiple shadowing definitions capture [[
+let
+  var a : int := 5
+  function get_a () : int =
+    a
+in
+  let
+    var a : int := 1
+    var a : int := 2
+  in
+    let
+      var a : int := 3
+    in
+      a := [[get_a()]]
+    end
+  end
+end
+]] run inline-function-test(|#1) to [[
+let
+  var a : int := 5
+  function get_a( ) : int =
+    a
+in
+  let
+    var a_2 : int := 1
+    var a_1 : int := 2
+  in
+    let
+      var a_0 : int := 3
+    in
+      a_0 := a
+    end
+  end
+end
+]]
+
+test do not rename shadowing definition without capture [[
+let
+  var a : int := 5
+  function foo () : int =
+    2
+in
+  let
+    var a : int := 2
+  in
+    [[foo()]]
+  end
+end
+]] run inline-function-test(|#1) to [[
+let
+  var a : int := 5
+  function foo( ) : int =
+    2
+in
+  let
+    var a : int := 2
+  in
+    2
+  end
+end
+]]

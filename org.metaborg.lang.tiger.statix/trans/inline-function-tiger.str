@@ -32,6 +32,7 @@ rules
     where
       <?Call(name, args)> t
   ls-extract-data(|name): FunDec(name, params, type, body) -> (params, body, type)
+  ls-extract-data(|name): ProcDec(name, params, body) -> (params, body, ())
   
   ls-make-decs: (params, args) -> decs
     where
@@ -46,6 +47,7 @@ rules
   // In the grammar a Let-body exists of a list of expressions, 
   // whereas a function body is only a single expression term.
   // Therefore we need to wrap a list around the body term.
+  ls-construct-block: (body, []) -> body
   ls-construct-block: (body, params) -> Let(params, [body])
   
   ls-is-exp-language = id

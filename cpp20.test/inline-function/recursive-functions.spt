@@ -23,7 +23,7 @@ int to_ten(int x) {
 ]]
 
 
-test function body definition captures inserted definition [[
+test function body definition captures inserted reference [[
 int x = 5;
 
 int foo() {

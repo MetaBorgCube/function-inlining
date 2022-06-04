@@ -1,0 +1,30 @@
+module inline-function/void-functions
+
+language Tiger
+
+/*
+  In Tiger, functions that return no value are called Procedures.
+  When defining them you specify no type.
+  However, because Tiger is an expression language, the Inline Function algorithm shouldn't have to handle procedures differently.
+  
+  Also, empty functions/procedures do not exist. 
+  The keyword nil has a type that can not be specified in the function type.
+  
+  Additionally, there are no return statements, so those tests are not present for Tiger.
+*/
+
+test basic procedure [[
+let
+  function foo () =
+    print("test")
+in
+  [[foo()]]
+end
+]] run inline-function-test(|#1) to [[
+let
+  function foo () =
+    print("test")
+in
+  print("test")
+end
+]]

@@ -1,16 +1,20 @@
 Mod(
   Let(
-    [ FunDec(
-        "not"
-      , [FArg("j", Tid("int"))]
+    [ VarDec("a", Tid("int"), Int("5"))
+    , FunDec(
+        "get_a"
+      , []
       , Tid("int")
-      , If(
-          Eq(Var("j"), Int("0"))
-        , Int("1")
-        , Int("0")
+      , Seq(
+          [ Var("a")
+          , Let(
+              [VarDec("a", Tid("int"), Int("3"))]
+            , [Call("get_a", [])]
+            )
+          ]
         )
       )
     ]
-  , [Call("not", [Int("5")])]
+  , []
   )
 )

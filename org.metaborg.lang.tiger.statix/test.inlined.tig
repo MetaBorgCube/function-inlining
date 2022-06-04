@@ -1,16 +1,23 @@
 let
-  function not(j : int) : int =
-    if j = 0 then
-      1
-    else
-      0
+  var a : int := 5
+  function get_a( ) : int =
+    (
+      a;
+      let
+        var a_0 : int := 3
+       in
+        let
+         in
+          (
+            a;
+            let
+              var a_0 : int := 3
+             in
+              get_a( )
+            end
+          )
+        end
+      end
+    )
  in
-  let
-    var j : int := 5
-   in
-    if j = 0 then
-      1
-    else
-      0
-  end
 end

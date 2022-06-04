@@ -1,0 +1,16 @@
+Mod(
+  Let(
+    [ FunDec(
+        "increment"
+      , [FArg("x", Tid("int"))]
+      , Tid("int")
+      , Plus(Var("x"), Int("1"))
+      )
+    ]
+  , [ Let(
+        [VarDec("x", Tid("int"), Int("5"))]
+      , [Plus(Var("x"), Int("1"))]
+      )
+    ]
+  )
+)

@@ -1,0 +1,267 @@
+module inline-function/general-cases
+
+language Tiger
+
+test basic expression statement [[
+let
+  function increment (x : int) : int =
+    x + 1
+in
+  [[increment(5)]]
+end
+]] run inline-function-test(|#1) to [[
+let
+  function increment(x : int) : int =
+    x + 1
+ in
+  let
+    var x : int := 5
+   in
+    x + 1
+  end
+end
+]]
+
+test one statement two function calls inline right [[
+let
+  function increment (x : int) : int =
+    x + 1
+in
+  increment(5) + [[increment(5)]]
+end
+]] run inline-function-test(|#1) to [[
+let
+  function increment(x : int) : int =
+    x + 1
+ in
+  increment(5) + let
+    var x : int := 5
+   in
+    x + 1
+  end
+end
+]]
+
+test one statement two function calls inline left [[
+let
+  function increment (x : int) : int =
+    x + 1
+in
+  [[increment(5)]] + increment(5)
+end
+]] run inline-function-test(|#1) to [[
+let
+  function increment(x : int) : int =
+    x + 1
+ in
+  let
+    var x : int := 5
+   in
+    x + 1
+  end + increment(5)
+end
+]]
+
+test two statements two function calls 1 [[
+let
+  function increment (x : int) : int =
+    x + 1
+in
+  (
+    increment(5);
+    [[increment(5)]]
+  )
+end
+]] run inline-function-test(|#1) to [[
+let
+  function increment (x : int) : int =
+    x + 1
+in
+  (
+    increment(5);
+    let
+      var x : int := 5
+    in
+      x + 1
+    end
+  )
+end
+]]
+
+test two statements two function calls 2 [[
+let
+  function increment (x : int) : int =
+    x + 1
+in
+  (
+    [[increment(5)]];
+    increment(5)
+  )
+end
+]] run inline-function-test(|#1) to [[
+let
+  function increment (x : int) : int =
+    x + 1
+in
+  (
+    let
+      var x : int := 5
+    in
+      x + 1
+    end; 
+    increment(5)
+  )
+end
+]]
+
+test basic variable declaration 1 [[
+let
+  function increment (x : int) : int =
+    x + 1
+in
+  let
+    var y : int := [[increment(5)]]
+  in
+    y + 1
+  end
+end
+]] run inline-function-test(|#1) to [[
+let
+  function increment (x : int) : int =
+    x + 1
+in
+  let
+    var y : int :=
+      let
+        var x : int := 5
+      in
+        x + 1
+      end
+  in
+    y + 1
+  end
+end
+]]
+
+test basic variable declaration 2 [[
+let
+  var a : int := 2
+  function increment (x : int) : int =
+    x + 1
+in
+  a := [[increment(a)]]
+end
+]] run inline-function-test(|#1) to [[
+let
+  var a : int := 2
+  function increment (x : int) : int =
+    x + 1
+in
+  a :=
+    let
+      var x : int := a
+    in
+      x + 1
+    end
+end
+]]
+
+
+
+// The static semantics only allow UNIT type expressions in the for loop body.
+test basic for statement 1 [[
+let
+  var a : int := 2
+  function increment (x : int) =
+    a := x + 1
+in
+  for i := 0 to 5 do 
+    [[increment(5)]]
+end
+]] run inline-function-test(|#1) to [[
+let
+  var a : int := 2
+  function increment(x : int) =
+    a := x + 1
+ in
+  for i := 0 to 5 do
+    let
+      var x : int := 5
+    in
+      a := x + 1
+    end
+end
+]]
+
+test basic for statement 2 [[
+let
+  function increment (x : int) : int =
+    x + 1
+in
+  for i := 0 to [[increment(2)]] do 
+    print("test")
+end
+]] run inline-function-test(|#1) to [[
+let
+  function increment (x : int) : int =
+    x + 1
+in
+  for i := 0 to
+    let
+      var x : int := 2
+    in
+      x + 1
+    end 
+  do 
+    print("test")
+end
+]]
+
+test basic for statement 3 [[
+let
+  function increment (x : int) : int =
+    x + 1
+in
+  for i := [[increment(-1)]] to 3 do 
+    print("test")
+end
+]] run inline-function-test(|#1) to [[
+let
+  function increment (x : int) : int =
+    x + 1
+in
+  for i :=
+    let
+      var x : int := -1
+    in
+      x + 1
+    end 
+  to 3 do
+    print("test")
+end
+]]
+
+
+
+test basic if statement [[
+let
+  function increment (x : int) : int =
+    x + 1
+in
+  if [[increment(5)]] then print("test")
+end
+]] run inline-function-test(|#1) to [[
+let
+  function increment (x : int) : int =
+    x + 1
+in
+  if let
+      var x : int := 5
+    in
+      x + 1
+    end
+  then print("test")
+end
+]]
+
+

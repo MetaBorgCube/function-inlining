@@ -1,0 +1,48 @@
+module inline-function/name-fix
+
+language Tiger
+
+// In Tiger we insert the function body as an isolated scope.
+// This means that inserted definitions can't affect other references.
+// Nothing outside the isolated scope can reference a definition inside the scope.
+//test inserted definition captures the original definition from which it was copied [[
+//
+//]] run inline-function-test(|#1) to [[
+//
+//]]
+
+test definition in function body captures inserted reference to other definition [[
+let
+  var a : int := 5
+  function get_a () : int =
+  (
+    a;
+    let
+      var a : int := 3
+    in
+      [[get_a()]]
+    end
+  )
+in end
+]] run inline-function-test(|#1) to [[
+let
+  var a : int := 5
+  function get_a( ) : int =
+  (
+    a;
+    let
+      var a_0 : int := 3
+    in
+      (
+        a;
+        let
+          var a_0 : int := 3
+         in
+          get_a( )
+        end
+      )
+    end
+  )
+ in
+end
+]]
