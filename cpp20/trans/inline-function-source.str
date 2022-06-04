@@ -48,6 +48,9 @@ rules
     ls-fix-semantic-errors, editor-analyze, multi
     |inline-errors): (selected-term, ast) -> ast-result
     where
+      <debug> "Start:";
+      <debug> <real-to-string> <run-time>;
+      
       // Get the (full project) scope graph and a list of ASTs if multi-file analysis is enabled.
       if multi
         then asts := <get-other-asts> ast
@@ -152,12 +155,20 @@ rules
           ; asts-analyses := []
         end <+ <add-error(|"get-project-analysis failed or stx-get-ast-analysis failed on an ast.", [])> inline-errors)
       
+      ; <debug> "|Name-fix start:"
+      ; <debug> <real-to-string> <run-time>
       ; (ast-result := <name-fix(multi, editor-analyze, add-error, ls-fix-semantic-errors|
                         (ast-s, analysis-s), asts-analyses, project-analysis, vs, new-ids, inline-errors)> ast-t'
           <+ <add-error(|"Name-fix failed to validate/fix the transformed AST.", [("ast", ast-t')])> inline-errors)      
-
+      ; <debug> "|Name-fix end:"
+      ; <debug> <real-to-string> <run-time>
+      
       ; <iset-destroy> vs
-      ; <hashtable-destroy> new-ids        
+      ; <hashtable-destroy> new-ids
+      
+      ; <debug> "End:"
+      ; <debug> <real-to-string> <run-time>
+      ; <debug> ""    
 
 
   // Helper strategies to display error messages.

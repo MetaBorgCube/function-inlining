@@ -1,0 +1,50 @@
+Application(
+  "helloworld"
+, [ Section(
+      "s"
+    , [ TemplateDefinition(
+          DefinePage([], "root", FormalArgs([]), TemplateArgs([]), [])
+        )
+      , GlobalFunction(
+          Function(
+            "f"
+          , FormalArgs([Arg("y", SimpleSort("Int"))])
+          , OptSortSome(SimpleSort("Int"))
+          , Block([Return(Const(Int("1")))])
+          )
+        )
+      , GlobalFunction(
+          Function(
+            "g"
+          , FormalArgs([Arg("z", SimpleSort("Int"))])
+          , OptSortSome(SimpleSort("Void"))
+          , Block(
+              [ VarDeclInitInferred("x", Const(Int("1")))
+              , VarDeclInitInferred("x2", ThisCall("f", [Const(Int("5"))]))
+              , VarDeclInit("a", SimpleSort("Int"), Const(Int("5")))
+              , VarDeclInit("y", SimpleSort("Int"), Const(Int("1")))
+              , Stat(Const(Int("1")))
+              ]
+            )
+          )
+        )
+      , GlobalFunction(
+          Function(
+            "f2"
+          , FormalArgs([])
+          , OptSortSome(SimpleSort("Void"))
+          , Block([ReturnEmpty()])
+          )
+        )
+      , GlobalFunction(
+          Function(
+            "f3"
+          , FormalArgs([])
+          , OptSortSome(SimpleSort("Void"))
+          , Block([])
+          )
+        )
+      ]
+    )
+  ]
+)

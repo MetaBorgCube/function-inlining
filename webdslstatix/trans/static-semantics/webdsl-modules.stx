@@ -1,0 +1,121 @@
+module static-semantics/webdsl-modules
+
+imports
+  static-semantics/webdsl-ac
+  static-semantics/webdsl-ui
+  static-semantics/webdsl
+
+signature
+
+  relations
+
+    library : list(string) * scope
+
+rules // unit rules
+
+  unitOk(s_global, Application(app, sections)) :- { s_mod }
+    new s_mod, s_mod -IMPORT-> s_global, s_global -GLOBAL-> s_mod,
+    declareACBuiltIns(s_global, s_mod),
+    declareMod(s_global, [app], s_mod),
+    importModules(s_global, s_mod, sections),
+    importLibrary(s_global, s_mod, ["_BUILTIN"]),
+    sectionsOk(s_mod, sections),
+    rootPageDefined(s_mod, app).
+
+  unitOk(s_global, Module(ModuleName(mps), sections)) :- { s_mod }
+    new s_mod, s_mod -IMPORT-> s_global, s_global -GLOBAL-> s_mod,
+    declareMod(s_global, modulePartsToStrings(mps), s_mod),
+    importModules(s_global, s_mod, sections),
+    importLibrary(s_global, s_mod, ["_BUILTIN"]),
+    sectionsOk(s_mod, sections).
+
+  unitOk(s_global, BuiltIn(sections)) :-
+    // only analyze built-in if no library is present
+    builtInOk(s_global, sections, notB(usesBuiltInLibraryB(s_global))).
+
+  unitOk(s_global, BuiltInLibrary(sections)) :-
+    !library[["_BUILTIN_LIBRARY"], new] in s_global,
+    builtInOk(s_global, sections, TRUE()).
+
+  builtInOk : scope * list(Section) * BOOL
+  builtInOk(s_global, sections, FALSE()).
+  builtInOk(s_global, sections, TRUE()) :- { s_mod }
+    new s_mod, s_mod -IMPORT-> s_global, s_global -GLOBAL-> s_mod,
+    declareBuiltIns(s_mod),
+    declareMod(s_global, ["_BUILTIN"], s_mod),
+    importModules(s_global, s_mod, sections),
+    sectionsOk(s_mod, sections).
+
+rules // import definition rules
+
+  defOk(_, Imports(_)). // imports are handled in another rule, discard them here
+  defOk(_, ImportsBuiltIn()).
+
+  importModules : scope * scope * list(Section)
+  importModules(_, _, []).
+  importModules(s, s_mod, [_ | ss]) :-
+    importModules(s, s_mod, ss).
+
+  importModules(s, s_mod, [Section(_, defs) | ss]) :-
+    importModulesInSection(s, s_mod, defs),
+    importModules(s, s_mod, ss).
+
+  importModulesInSection : scope * scope * list(Definition)
+  importModulesInSection(_, _, []).
+  importModulesInSection(s, s_mod, [_ | defs]) :- importModulesInSection(s, s_mod, defs).
+  importModulesInSection(s, s_mod, [Imports(ImportName(ModuleName(mps), NoWildcardImport())) | defs]) :-
+    importModule(s, s_mod, modulePartsToStrings(mps)),
+    importModulesInSection(s, s_mod, defs).
+
+  importModule : scope * scope * list(string)
+  importModule(s, s_mod, mps) :- {s_y}
+    resolveMod(s, mps) == [(_, (_, s_y))] | error $[Cannot resolve module [mps]],
+    importModuleScopeIfDeclared(s_mod, s_y, modDeclaredB(resolveMod(s, mps))).
+
+  modDeclaredB : list((path * (list(string) * scope))) -> BOOL
+  modDeclaredB([]) = FALSE().
+  modDeclaredB(_) = TRUE().
+
+  importModuleScopeIfDeclared : scope * scope * BOOL
+  importModuleScopeIfDeclared(s_mod, s_y, TRUE()) :- s_mod -IMPORT-> s_y.
+  importModuleScopeIfDeclared(s_mod, s_mod, TRUE()). // restrict self import
+  importModuleScopeIfDeclared(_, _, FALSE()).
+
+  importModulesInSection(s, s_mod, [i@Imports(ImportName(ModuleName(mps), WildcardImport())) | defs]) :-
+    importModulesWildcard(s_mod, resolveModWildcard(s, modulePartsToStrings(mps)), i),
+    importModulesInSection(s, s_mod, defs).
+
+  importModulesWildcard : scope * list((path * (list(string) * scope))) * Definition
+  importModulesWildcard(_, [], i) :- false | error $[Cannot resolve modules] @i.
+  importModulesWildcard(s_mod, mods, _) :- importModulesWildcard_internal(s_mod, mods).
+
+  importModulesWildcard_internal maps importModuleWildcard_internal(*, list(*))
+  importModuleWildcard_internal : scope * (path * (list(string) * scope))
+  importModuleWildcard_internal(s_mod, (_, (_, s_y))) :- s_mod -IMPORT-> s_y.
+  importModuleWildcard_internal(s_mod, (_, (_, s_mod))). // restrict self import
+
+  importLibrary : scope * scope * list(string)
+  importLibrary(s_global, s_mod, lib) :- { s_lib }
+    resolveMod(s_global, lib) == [(_, (_, s_lib))] | error $[Cannot resolve module [lib]],
+    importLibraryScopeIfDeclared(s_mod, s_lib, modDeclaredB(resolveMod(s_global, lib))).
+
+  importLibraryScopeIfDeclared : scope * scope * BOOL
+  importLibraryScopeIfDeclared(s_mod, s_lib, TRUE()) :- s_mod -IMPORTLIB-> s_lib.
+  importLibraryScopeIfDeclared(s_mod, s_mod, TRUE()). // restrict self import
+  importLibraryScopeIfDeclared(_, _, FALSE()).
+
+rules // utils
+
+  usesBuiltInLibraryB : scope -> BOOL
+  usesBuiltInLibraryB(s_global) = usesLibraryB_internal(ps) :-
+        query library filter e
+          and { m' :- m' == (["_BUILTIN_LIBRARY"], _) }
+          in s_global |-> ps.
+
+  usesLibraryB_internal : list((path * (list(string) * scope))) -> BOOL
+  usesLibraryB_internal([]) = FALSE().
+  usesLibraryB_internal([_ | _]) = TRUE().
+
+  modulePartsToStrings maps modulePartToString(list(*)) = list(*)
+  modulePartToString : ModulePart -> string
+  modulePartToString(ModulePart(s)) = s.

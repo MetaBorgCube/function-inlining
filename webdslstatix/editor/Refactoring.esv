@@ -1,0 +1,6 @@
+module Refactoring
+
+menus
+  menu: "Refactoring"
+  
+  action: "Inline Function" = inline-function-menu-action (openeditor)

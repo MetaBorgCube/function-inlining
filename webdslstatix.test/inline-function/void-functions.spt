@@ -1,0 +1,93 @@
+module inline-function/void-functions
+
+language webdsl-statix
+
+test basic empty void function [[
+built-in-library
+section testing
+
+function foo() : Void { }
+
+function main() : Void {
+    [[foo()]];
+}
+]] run inline-function-test(|#1) to [[
+built-in-library
+section testing
+
+function foo() : Void { }
+
+function main() : Void { }
+]]
+
+test basic void function with return [[
+built-in-library
+section testing
+
+function foo() : Void {
+  return;
+}
+
+function main() : Void {
+    [[foo()]];
+}
+]] run inline-function-test(|#1) to [[
+built-in-library
+section testing
+
+function foo() : Void {
+  return;
+}
+
+function main() : Void { }
+]]
+
+test nonempty void function without return [[
+built-in-library
+section testing
+
+function foo() : Void {
+  1;
+}
+
+function main() : Void {
+    [[foo()]];
+}
+]] run inline-function-test(|#1) to [[
+built-in-library
+section testing
+
+function foo() : Void {
+  1;
+}
+
+function main() : Void {
+  1;
+}
+]]
+
+test nonempty void function with return [[
+built-in-library
+section testing
+
+function foo() : Void {
+  1;
+  return;
+}
+
+function main() : Void {
+    [[foo()]];
+}
+]] run inline-function-test(|#1) to [[
+built-in-library
+section testing
+
+function foo() : Void {
+  1;
+  return;
+}
+
+function main() : Void {
+  1;
+}
+]]

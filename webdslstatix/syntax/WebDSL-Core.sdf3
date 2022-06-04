@@ -1,0 +1,132 @@
+module WebDSL-Core
+
+imports
+  WebDSL-Action
+  WebDSL-DataModel
+  WebDSL-Lexical
+
+context-free sorts
+
+  FormalArg OptFormalArgs FunctionSortParams FunctionSortParam FunctionSortReturn OptCallArgs Sort
+
+context-free syntax %% Types
+
+  Sort.SimpleSort = <<SimpleSortLex>>
+  Sort.GenericSort = <<GenericSortLex> \< <{Sort ","}+> \>>
+  Sort.ListSort = <[ <Sort> ]>
+  Sort.SetSort = <{ <Sort> }>
+  Sort.RefSort = <ref <Sort>>
+  Sort.RefSortAlt = <Ref \< <Sort> \>>
+  Sort.FunctionSort = <function <FunctionSortParams> <FunctionSortReturn>>
+
+lexical syntax
+
+  SimpleSortLex = "function" {reject}
+
+context-free syntax
+
+  %% function type; optionally specify (named) args and return type
+  FunctionSortParams.FunctionSortParams = <( <{FunctionSortParam ","}*> )>
+  FunctionSortParams.FunctionSortParamsNone = <>
+  FunctionSortParam.UnnamedArg = Sort
+  FunctionSortParam.NamedArg = <<VarId> : <Sort>>
+  FunctionSortReturn.FunctionSortReturn = <: <Sort>>
+  FunctionSortReturn.FunctionSortReturnNone = <>
+
+  FormalArg.Arg = <<VarId> : <Sort>>
+  OptFormalArgs.FormalArgs = <( <{FormalArg ","}*> )>
+  OptFormalArgs.OptFormalArgsNone = <>
+
+  OptCallArgs.CallArgs = <( <{Exp ","}*> )>
+  OptCallArgs.OptCallArgsNone = <>
+
+context-free sorts
+
+  Unit Section Definition EnumValue
+
+context-free syntax
+  Section.Section = <
+    section <SectionName> 
+    <defs:Definition*>
+  > {layout(align-list defs)}
+
+  Unit.ApplicationDefs = <
+    application <QId>
+      <defs:Definition+>
+    <sects:Section*>
+  > {layout(align-list defs), layout(align-list sects)}
+
+  Unit.Application = <
+    application <QId>
+    <sects:Section*>
+  > {layout(align-list sects)}
+
+  Unit.ModuleDefs = <
+    module <ModuleName>
+      <defs:Definition+>
+    <sects:Section*>
+  > {layout(align-list defs), layout(align-list sects)}
+
+  Unit.Module = <
+    module <ModuleName>
+    <sects:Section*>
+  > {layout(align-list sects)}
+
+  Unit.BuiltInDefs = <
+    built-in
+      <defs:Definition+>
+    <sects:Section*>
+  > {layout(align-list defs), layout(align-list sects)}
+
+  Unit.BuiltIn = <
+    built-in
+    <sects:Section*>
+  > {layout(align-list sects)}
+
+  Unit.BuiltInLibraryDefs = <
+    built-in-library
+      <defs:Definition+>
+    <sects:Section*>
+  > {layout(align-list defs), layout(align-list sects)}
+
+  Unit.BuiltInLibrary = <
+    built-in-library
+    <sects:Section*>
+  > {layout(align-list sects)}
+
+  Unit.EmptyUnit = <>
+
+  Definition.Imports = <
+    imports <ImportName>
+  >
+
+  Definition.ImportsBuiltIn = <
+    imports built-in
+  >
+
+  ImportName = "built-in" {reject}
+
+context-free syntax
+
+  Definition.Description = <
+    description { <Word*> }
+  >
+  Definition.Note = <
+    note { <Word*> }
+  >
+
+  Definition.Enum = <
+    enum <Id> {
+      <enums:{EnumValue ","}*>
+    }
+  > {layout(align-list enums)}
+  
+  EnumValue.EnumValue = <<Id> ( <String> )>
+
+context-free sorts
+
+  Action Statement
+
+context-free syntax
+
+  Definition = Action

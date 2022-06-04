@@ -1,0 +1,96 @@
+module syntax/access-control/definitions
+
+language webdsl-statix
+
+fixture [[
+  application access_control_definitions
+
+  [[...]]
+]]
+
+// Access control sections
+test access control rules section unnamed [[
+  access control rules
+]] parse succeeds parse to AccessControlDefinition(OptIdNone(), [])
+
+test access control rules section [[
+  access control rules ac
+]] parse succeeds parse to AccessControlDefinition(Id("ac"), [])
+
+test access control rules section alt unnamed [[
+  access control rules {
+
+  }
+]] parse succeeds parse to AccessControlDefinitionAlt(OptIdNone(), [])
+
+test access control rules section alt [[
+  access control rules {
+    ac
+
+  }
+]] parse succeeds parse to AccessControlDefinitionAlt(Id("ac"), [])
+
+test access control rules section alt name before block [[
+  access control rules ac {
+  }
+]] parse fails
+
+// principal definitions
+test ac principal def [[
+  principal is User with credentials email
+]]  parse succeeds parse to AccessControlPrincipalDef("User", ["email"])
+
+test ac principal def multiple credentials [[
+  principal is User with credentials email, password
+]] parse succeeds parse to AccessControlPrincipalDef("User", ["email", "password"])
+
+test ac principal def no credentials [[
+  principal is User with credentials
+]] parse fails
+
+test ac principal def in ac section [[
+  access control rules
+    principal is User with credentials email
+]] parse succeeds parse to AccessControlDefinition(OptIdNone(), [ AccessControlPrincipalAcDef("User", ["email"]) ])
+
+test ac principal def multiple credentials [[
+  access control rules
+    principal is User with credentials email, password
+]] parse succeeds parse to AccessControlDefinition(OptIdNone(), [ AccessControlPrincipalAcDef("User", ["email", "password"]) ])
+
+test ac principal def no credentials [[
+  access control rules
+    principal is User with credentials
+]] parse fails
+
+// access control rule definition outside of ac section
+test access control rule outside of ac section [[
+  rule page root() {
+    true
+  }
+]] parse fails
+
+// predicate outside of ac section
+test outside ac predicate [[
+  predicate isAdmin { true }
+]] parse succeeds parse to Predicate("isAdmin", OptFormalArgsNone(), True())
+
+test outside ac predicate single argument [[
+  predicate isAdmin(u : User) { true }
+]] parse succeeds parse to Predicate("isAdmin", FormalArgs([Arg("u", SimpleSort("User"))]), True())
+
+test outside ac predicate multiple arguments [[
+  predicate isAdmin(u : User, x : Int) { true }
+]] parse succeeds parse to Predicate("isAdmin", FormalArgs([Arg("u", SimpleSort("User")), Arg("x", SimpleSort("Int"))]), True())
+
+test outside ac predicate more than one exp [[
+  predicate isAdmin { true false }
+]] parse fails
+
+test outside ac predicate no exp [[
+  predicate isAdmin {  }
+]] parse fails
+
+test outside ac predicate nested exp [[
+  predicate isAdmin { (1+2) == (2+1) }
+]] parse succeeds parse to Predicate("isAdmin", OptFormalArgsNone(), Eq(Add(Const(Int("1")), Const(Int("2"))), Add(Const(Int("2")), Const(Int("1")))))

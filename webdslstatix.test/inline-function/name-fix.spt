@@ -1,0 +1,176 @@
+module inline-function/name-fix
+
+language webdsl-statix
+
+test rename capturing definition (parameter) [[
+built-in-library
+section testing
+
+function foo(x : Int) : Int {
+  return 1;
+}
+
+function main() : Void {
+  var x : Int := 5;
+  {
+    [[foo(2)]];
+    x := 6;
+  }
+}
+]] run inline-function-test(|#1) to [[
+built-in-library
+section testing
+
+function foo(x : Int) : Int {
+  return 1;
+}
+
+function main() : Void { 
+  var x : Int := 5;
+  {
+    var x_0 : Int := 2;
+    1;
+    x := 6;
+  }
+}
+]]
+
+test rename capturing definition (regular definition) [[
+built-in-library
+section testing
+
+function foo() : Int {
+  var x : Int;
+  return 1;
+}
+
+function main() : Void {
+  var x : Int := 5;
+  {
+    [[foo()]];
+    x := 6;
+  }
+}
+]] run inline-function-test(|#1) to [[
+built-in-library
+section testing
+
+function foo() : Int {
+  var x : Int;
+  return 1;
+}
+
+function main() : Void { 
+  var x : Int := 5;
+  {
+    var x_0 : Int;
+    1;
+    x := 6;
+  }
+}
+]]
+
+test rename capturing definition with references (regular definition) [[
+built-in-library
+section testing
+
+function foo() : Int {
+  var x : Int := 2;
+  x := x * 2;
+  x := 5 + x;
+  return 1;
+}
+
+function main() : Void {
+  var x : Int := 5;
+  {
+    [[foo()]];
+    x := 6;
+  }
+}
+]] run inline-function-test(|#1) to [[
+built-in-library
+section testing
+
+function foo() : Int {
+  var x : Int := 2;
+  x := x * 2;
+  x := 5 + x;
+  return 1;
+}
+
+function main() : Void { 
+  var x : Int := 5;
+  {
+    var x_0 : Int := 2;
+    x_0 := x_0 * 2;
+    x_0 := 5 + x_0;
+    1;
+    x := 6;
+  }
+}
+]]
+
+test shadowing is not allowed in webdsl so rename [[
+built-in-library
+section testing
+
+function foo(x : Int) : Int {
+  return 1;
+}
+
+function main() : Void {
+  var x : Int := 5;
+  {
+    [[foo(2)]];
+  }
+  x := 6;
+}
+]] run inline-function-test(|#1) to [[
+built-in-library
+section testing
+
+function foo(x : Int) : Int {
+  return 1;
+}
+
+function main() : Void {
+  var x : Int := 5;
+  {
+    var x_0 : Int := 2;
+    1;
+  }
+  x := 6;
+}
+]]
+
+test capture global definition [[
+built-in-library
+section testing
+
+var x : Int := 5
+
+function foo(x : Int) : Int {
+  return 1;
+}
+
+function main() : Void {
+  [[foo(2)]];
+  1 + x;
+}
+]] run inline-function-test(|#1) to [[
+built-in-library
+section testing
+
+var x : Int := 5
+
+function foo(x : Int) : Int {
+  return 1;
+}
+
+function main() : Void {
+  var x_0 : Int := 2;
+  1;
+  1 + x;
+}
+]]

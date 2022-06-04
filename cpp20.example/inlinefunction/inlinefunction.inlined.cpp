@@ -1,10 +1,10 @@
-#include "inlinefunction/dummy.cpp"
+int foo(int x)
+{
+  return x;
+}
 
 int main( )
 {
-  int x = 2;
-  int x_0 = 5;
-  int x_1;
-  x_1 = 3;
-  4;
+  int x = 5;
+  x;
 }

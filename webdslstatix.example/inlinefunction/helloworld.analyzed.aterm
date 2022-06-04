@@ -1,0 +1,23 @@
+BuiltInLibrary(
+  [ Section(
+      "testing"{TermIndex("inlinefunction/helloworld.app", 1)}
+    , [ GlobalFunction(
+          Function(
+            "foo"{TermIndex("inlinefunction/helloworld.app", 2)}
+          , FormalArgs([]{TermIndex("inlinefunction/helloworld.app", 4)}){TermIndex("inlinefunction/helloworld.app", 5)}
+          , OptSortSome(SimpleSort("Void"{TermIndex("inlinefunction/helloworld.app", 6)}){TermIndex("inlinefunction/helloworld.app", 7)}){TermIndex("inlinefunction/helloworld.app", 8)}
+          , Block([]{TermIndex("inlinefunction/helloworld.app", 10)}){TermIndex("inlinefunction/helloworld.app", 11)}
+          ){TermIndex("inlinefunction/helloworld.app", 12)}
+        ){TermIndex("inlinefunction/helloworld.app", 13)}
+      , GlobalFunction(
+          Function(
+            "main"{TermIndex("inlinefunction/helloworld.app", 14)}
+          , FormalArgs([]{TermIndex("inlinefunction/helloworld.app", 16)}){TermIndex("inlinefunction/helloworld.app", 17)}
+          , OptSortSome(SimpleSort("Void"{TermIndex("inlinefunction/helloworld.app", 18)}){TermIndex("inlinefunction/helloworld.app", 19)}){TermIndex("inlinefunction/helloworld.app", 20)}
+          , Block([Stat(ThisCall("foo"{TermIndex("inlinefunction/helloworld.app", 21)}, []{TermIndex("inlinefunction/helloworld.app", 23)}){TermIndex("inlinefunction/helloworld.app", 24)}){TermIndex("inlinefunction/helloworld.app", 26)}]{TermIndex("inlinefunction/helloworld.app", 29)}){TermIndex("inlinefunction/helloworld.app", 30)}
+          ){TermIndex("inlinefunction/helloworld.app", 31)}
+        ){TermIndex("inlinefunction/helloworld.app", 32)}
+      ]{TermIndex("inlinefunction/helloworld.app", 36)}
+    ){TermIndex("inlinefunction/helloworld.app", 37)}
+  ]{TermIndex("inlinefunction/helloworld.app", 40)}
+){TermIndex("inlinefunction/helloworld.app", 41)}

@@ -1,0 +1,23 @@
+BuiltInLibrary(
+  [ Section(
+      "testing"
+    , [ GlobalFunction(
+          Function(
+            "foo"
+          , FormalArgs([])
+          , OptSortSome(SimpleSort("Void"))
+          , Block([])
+          )
+        )
+      , GlobalFunction(
+          Function(
+            "main"
+          , FormalArgs([])
+          , OptSortSome(SimpleSort("Void"))
+          , Block([Stat(ThisCall("foo", []))])
+          )
+        )
+      ]
+    )
+  ]
+)

@@ -1,0 +1,97 @@
+module inline-function-webdsl
+
+imports
+  analysis
+  pp
+  injections/WebDSL-Action-injections
+  inline-function-source
+  inline-function-name-fix
+  
+rules
+  inline-function-test(|selected-term): ast -> <inline-function(ls-extract-data, ls-make-decs,
+    ls-fix-control-flow, ls-is-return, ls-construct-block, ls-is-exp-language, ls-is-statement,
+    ls-insert-before, ls-remove-exp, ls-fix-semantic-errors, editor-analyze, multi
+    |<new-iset>)> (selected-term, ast)
+
+  inline-function-menu-action = inline-function-action(pp-debug, ls-extract-data, ls-make-decs,
+    ls-fix-control-flow, ls-is-return, ls-construct-block, ls-is-exp-language, ls-is-statement,
+    ls-insert-before, ls-remove-exp, ls-fix-semantic-errors, editor-analyze, multi
+    | "inlined.app")
+   
+    // At the time of writing, construct-textual-change doesn't work because of issues with origin tracking.
+    // In case it is fixed, the definition below can be uncommented to replace the definition above.
+//  inline-function-menu-action-2 = inline-function-action(construct-textual-change, ls-extract-data, ls-make-decs,
+//    ls-fix-control-flow, ls-is-return, ls-construct-block, ls-is-exp-language, ls-is-statement,
+//    ls-insert-before, ls-remove-exp, ls-fix-semantic-errors, editor-analyze, multi
+//    | "inlined.cpp")
+  
+  // Change to "id" to enable- and "fail" to disable multi-file mode.
+  multi = id
+//  multi = fail
+
+  ls-extract-data(|()): t -> (t, name, args)
+    where
+      <?ThisCall(name, args)> t
+  ls-extract-data(|name): Function(name, FormalArgs(params), type, Block(body))
+    -> (params, body, type)
+  
+  ls-make-decs: (params, args) -> decs
+    where
+      decs := <zip(\ (Arg(name, type), value)
+                     -> VarDeclInit(name, type, value) \)> (params, args)
+
+  // Bodies of void functions
+  ls-fix-control-flow(|type): body -> (body', ())
+    where
+        <is-void> type
+      ; (body', ReturnEmpty()) := <split-init-last> body
+  ls-fix-control-flow(|type): body -> (body, ())
+    where <is-void> type  
+  // Other functions
+  ls-fix-control-flow(|_): body -> (body', return-exp)
+    where
+      (body', Return(return-exp)) := <split-init-last> body
+  
+  is-void: t -> t
+    where ?OptSortNone() <+ ?OptSortSome(SimpleSort("Void"))
+  
+  ls-is-return = ?Return(_)
+  ls-is-return = ?ReturnEmpty()
+  
+  ls-construct-block: (body, params) -> Block(<concat> [params, body])
+  
+  ls-is-exp-language = fail
+  
+  ls-is-statement = is-webdsl-statix-Statement-or-inj
+      
+  ls-insert-before(|stmt, Block(block)): ast -> ast-t
+    where
+      ast-t := <oncetd(insert-before-helper(|stmt, block))> ast
+  // In case the function body is empty, nothing needs to be added in front of the statement.
+  insert-before-helper(|stmt, []): stmt -> stmt
+  // There are cases where the statement is a singular statement, so it is not part of a list.
+  // In that case it should be turned into a Block when the other statements are added.
+  insert-before-helper(|stmt, new-block): stmt -> Block(<conc> (new-block, [stmt]))
+  // Else, the new statements should just be inserted in the list containing the specified stmt.
+  insert-before-helper(|stmt, new-block): t -> new-t
+    where
+        (before, after) := <split-fetch(?stmt)> t
+      ; new-t := <conc> (before, new-block, [stmt], after)
+  
+  // 
+  ls-remove-exp(|exp): ast -> ast-t
+    where
+      // split-fetch ensures that the element is in the list.
+      // If we would use filter instead, the strategy would succeed for all lists.
+      ast-t := <oncetd( split-fetch(?Stat(exp)); conc )> ast
+  
+  // other-asts equals [] unless multi-file mode is enabled and there are other programs in the project.
+  // It is passed on in case the other files are needed to fix a semantic error.
+  // If it is filled, it contains (ast, tuple) entries.
+  ls-fix-semantic-errors(|analysis-errors, (old-ast, old-analysis), asts-analyses): new-ast -> fixed-ast
+    where
+        (duplicate-term, _) := <fetch-elem(where(Snd; is-substring(!"already exists in this scope")))> analysis-errors
+      ; fixed-ast := <rename-duplicate-declaration> ((old-ast, old-analysis), asts-analyses, new-ast, duplicate-term)
+
+      
+      

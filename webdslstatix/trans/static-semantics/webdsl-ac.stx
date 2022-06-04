@@ -1,0 +1,285 @@
+module static-semantics/webdsl-ac
+
+imports
+  static-semantics/actions/functions
+
+  static-semantics/entities/annotations
+
+  static-semantics/types/built-ins
+
+  static-semantics/ui/template-calls
+
+  static-semantics/webdsl-actions
+  static-semantics/webdsl-entities
+  static-semantics/webdsl-types
+  static-semantics/webdsl
+
+rules // built-ins
+
+  declareACBuiltIns : scope * scope
+  declareACBuiltIns(s_decl, s_resolve) :- { s_securityContext bool entity }
+    bool == bool(s_resolve),
+    entity == entity(s_resolve),
+
+    new s_securityContext,
+    declareEntityAnnotation(s_securityContext, SESSIONENTITY()),
+    declareExtendScope(s_decl, "securityContext", s_securityContext), // declare s_type to be linked to type name
+    extendScopes(resolveExtendScope(s_decl, "securityContext"), s_securityContext),
+    declareType(s_decl, "securityContext", ENTITY("securityContext", s_securityContext)),
+    declareVar(s_decl, "securityContext", ENTITY("securityContext", s_securityContext)),
+
+    declareFunction(s_decl, "loggedIn", [], bool),
+    declareFunction(s_decl, "logout", [], entity),
+    declareFunction(s_decl, "principalAsEntity", [], entity),
+
+    declareTemplate(s_decl, "login", []),
+    declareTemplate(s_decl, "logout", []),
+    declareTemplate(s_decl, "authentication", []).
+
+  typeOfFunctionCall(s, "loggedIn", []) = bool(s) :- principalDefined(s).
+  typeOfFunctionCall(s, "logout", []) = VOID() :- principalDefined(s).
+  typeOfFunctionCall(s, "principalAsEntity", []) = entity(s) :- principalDefined(s).
+  typeOfFunctionCall(s, "authenticate", argExps) = bool(s) :- { argTypes credentialTypes }
+    principalDefined(s),
+    argTypes == typesOfExps(s, argExps),
+    credentialTypes == credentialTypes(s),
+    typesCompatible(argTypes, credentialTypes) == TRUE() | error $[Argument types [argTypes] not compatible with credential types [credentialTypes]].
+
+  templateCallMatchesSig(s, "login", [], _) :- principalDefined(s).
+  templateCallMatchesSig(s, "logout", [], _) :- principalDefined(s).
+  templateCallMatchesSig(s, "authenticate", [], _) :- principalDefined(s).
+
+rules
+
+  sectionOk(s, AccessControlDefinition(_, defs)) :- acDefsOk(s, defs).
+
+  acDefsOk maps acDefOk(*, list(*))
+  acDefOk : scope * AccessControlDefinition
+  acDefOk(_,_) :- false | error $[This access control definition is not yet supported].
+
+rules // securitycontext and principal
+
+  defOk(s, AccessControlPrincipalDef(ent, properties)) :- principalDefOk(s, ent, properties).
+  acDefOk(s, AccessControlPrincipalAcDef(ent, properties)) :- principalDefOk(s, ent, properties).
+
+  principalDefOk : scope * string * list(string)
+  principalDefOk(s, ent, properties) :- { s_ent entityName credentialTypes t }
+    // TO-DO: only give principal access to the credential properties instead of all
+    definedTypeCustomError(s, ent) == t@ENTITY(entityName, s_ent) | error $[Entity [ent] does not exist, and cannot be used as principal for access control], // correct error message for tests
+    principalPropertyTypes(s_ent, properties, ent) == credentialTypes,
+    compatibleCredentialTypes(properties, credentialTypes),
+    declSecurityContext(s, t, credentialTypes).
+
+  compatibleCredentialTypes maps compatibleCredentialType(list(*), list(*))
+  compatibleCredentialType : string * TYPE
+  compatibleCredentialType(x, s) :-
+    isStringCompatibleType(s) | error $[Credential types should be compatible with String type] @x.
+
+  declSecurityContext : scope * TYPE * list(TYPE)
+  declSecurityContext(s, principalType, credentialTypes) :- { s_extend_security_context }
+    new s_extend_security_context,
+    declProperty(s_extend_security_context, "securityContext", "principal", principalType),
+    declProperty(s_extend_security_context, "securityContext", "loggedIn", bool(s)),
+    declareCredentials(s_extend_security_context, credentialTypes),
+    declareExtendScope(s, "securityContext", s_extend_security_context),
+    extendScopes(resolveExtendScope(s, "securityContext"), s_extend_security_context).
+
+  declareCredentials : scope * list(TYPE)
+  declareCredentials(s, ts) :- !var["_credentials", withType(CREDENTIALS(ts))] in s.
+
+rules // access control rules
+
+  acDefOk(s, Rule(r)) :- acRuleOk(s, r).
+
+  acRuleOk : scope * AccessControlRule
+  acRuleOk(_, _) :- try { false } | warning $[This access control rule is not yet implemented].
+  acRuleOk(s, AccessControlRule(t, x, mas@MatchArgs(args, _), exp, nested)) :- { s_rule argTypes principalType bool }
+    acRuleSignatureOk(s, t, x, mas),
+    bool == bool(s),
+    new s_rule, s_rule -F-> s,
+    argTypes == typesOfArgs(s, args),
+    declareParameters(s_rule, zipArgTypes(args, argTypes)),
+    principalType == principalType(s) | error $[Cannot have access control rules without a principal declaration] @x, // correct error message for tests
+    declareVar(s_rule, "principal", principalType),
+    declareVar(s_rule, "loggedIn", bool),
+    nestedAcRulesOk(s_rule, nested),
+    equalType(typeOfExp(s_rule, exp), bool) | error $[Rule should contain a Bool expression] @exp. // correct error message for tests
+
+  acRuleOk(s, SpecialAccessControlRule(exp)) :- { s_rule principalType bool }
+    bool == bool(s),
+    new s_rule, s_rule -F-> s,
+    principalType == principalType(s) | error $[Cannot have access control rules without a principal declaration], // correct error message for tests
+    declareVar(s_rule, "principal", principalType),
+    declareVar(s_rule, "loggedIn", bool),
+    equalType(typeOfExp(s_rule, exp), bool) | error $[Rule should contain a Bool expression] @exp. // correct error message for tests
+
+  nestedAcRulesOk maps nestedAcRuleOk(*, list(*))
+  nestedAcRuleOk : scope * AccessControlRule
+  nestedAcRuleOk(_, _) :- false | error $[Nested rule type unknown, nested rules must be of type "action"]. // correct error message for tests
+  nestedAcRuleOk(_, AccessControlRule(t, _, _, _, _)) :- false | error $[Nested rule type unknown, nested rules must be of type "action"] @t. // correct error message for tests
+  nestedAcRuleOk(s, AccessControlRule(ACTypeAction(), x, MatchArgs(args, _), exp, nested)) :- { s_rule argTypes }
+    new s_rule, s_rule -P-> s, // P label here instead of F to correctly resolve and error on variable usage
+    argTypes == typesOfArgs(s, args),
+    declareParameters(s_rule, zipArgTypes(args, argTypes)),
+    nestedAcRulesOk(s_rule, nested),
+    equalType(typeOfExp(s_rule, exp), bool(s)) | error $[Rule should contain a Bool expression] @exp. // correct error message for tests
+
+  nestedAcRuleOk(s, SpecialAccessControlRule(exp)) :- { s_rule }
+    new s_rule, s_rule -P-> s,
+    equalType(typeOfExp(s_rule, exp), bool(s)) | error $[Rule should contain a Bool expression] @exp. // correct error message for tests
+
+  acRuleSignatureOk : scope * AccessControlType * MatchName * OptMatchArgs
+  acRuleSignatureOk(_, _, m, _) :- try { false } | warning $[This access control signature is not checked yet] @m.
+
+  // a wildcard in the name is always ok
+  acRuleSignatureOk(_, _, MatchNameWildCard(), _).
+  acRuleSignatureOk(_, _, MatchName(_, WildCardArg()), _).
+
+  acRuleSignatureOk(s, ACTypePage(), MatchName(p, OptWildCardArgNone()), MatchArgs(_, WildCardArg())) :-
+    pageType(s, p) == PAGE(_, _) | error $[Page rule refers to non-existing page [p]] @p. // correct error message for tests
+
+  acRuleSignatureOk(s, ACTypePage(), MatchName(p, OptWildCardArgNone()), MatchArgs(args, OptWildCardArgNone())) :- { argTypes sigTypes }
+    pageType(s, p) == PAGE(_, sigTypes) | error $[Page rule refers to non-existing page [p]] @p, // correct error message for tests
+    typesOfArgs(s, args) == argTypes,
+    argTypes == sigTypes | error $[Argument types [argTypes] are not equal to the page signature types [sigTypes]] @args.
+
+  acRuleSignatureOk(_, ACTypeAction(), _, _).
+
+  acRuleSignatureOk(s, ACTypeTemplate(), MatchName(t, OptWildCardArgNone()), MatchArgs(_, WildCardArg())) :-
+    resolveTemplateNoAjax(s, t) == [_ | _] | error $[Template rule refers to non-existing template [t]. For ajax templates, use 'rule ajaxtemplate'] @t. // correct error message for tests
+
+  acRuleSignatureOk(s, ACTypeTemplate(), MatchName(t, OptWildCardArgNone()), MatchArgs(args, OptWildCardArgNone())) :- { argTypes queryResult ts }
+    argTypes == typesOfArgs(s, args),
+    queryResult@[_ | _] == resolveTemplateNoAjax(s, t) | error $[Template rule refers to non-existing template [t]. For ajax templates, use 'rule ajaxtemplate'] @t, // correct error message for tests
+    ts == queryResultTypes(queryResult),
+    acRuleSignatureArgsMatching(argTypes, ts) | error $[Template rule refers to non-existing template [t] with argument types [argTypes]] @args. // correct error message for tests
+
+  acRuleSignatureOk(s, ACTypeAjaxTemplate(), MatchName(t, OptWildCardArgNone()), MatchArgs(_, WildCardArg())) :-
+    resolveAjaxTemplate(s, t) == [_ | _] | error $[Ajax template rule refers to non-existing template [t]. For non-ajax templates, use 'rule template'] @t. // correct error message for tests
+
+  acRuleSignatureOk(s, ACTypeAjaxTemplate(), MatchName(t, OptWildCardArgNone()), MatchArgs(args, OptWildCardArgNone())) :- { argTypes queryResult ts }
+    argTypes == typesOfArgs(s, args),
+    queryResult@[_ | _] == resolveAjaxTemplate(s, t) | error $[Template rule refers to non-existing template [t]. For non-ajax templates, use 'rule template'] @t, // correct error message for tests
+    ts == queryResultTypes(queryResult),
+    acRuleSignatureArgsMatching(argTypes, ts) | error $[Template rule refers to non-existing template [t] with argument types [argTypes]] @args. // correct error message for tests
+
+  acRuleSignatureOk(s, ACTypePointcut(), MatchName(p, OptWildCardArgNone()), MatchArgs(_, WildCardArg())) :-
+    resolvePointcut(s, p) == [_ | _] | error $[pointcut [p] does not exist] @p. // correct error message for tests
+
+  acRuleSignatureOk(s, ACTypePointcut(), MatchName(p, OptWildCardArgNone()), MatchArgs(args, OptWildCardArgNone())) :- { argTypes queryResult ts }
+    argTypes == typesOfArgs(s, args),
+    queryResult@[_ | _] == resolvePointcut(s, p) | error $[pointcut [p] does not exist] @p, // correct error message for tests
+    ts == queryResultTypes(queryResult),
+    acRuleSignatureArgsMatching(argTypes, ts) | error $[Pointcut rule refers to non-existing pointcut [p] with argumnent types [argTypes]] @args. // correct error message for tests
+
+  acRuleSignatureArgsMatching : list(TYPE) * list(TYPE)
+  acRuleSignatureArgsMatching(_, []) :- false.
+  acRuleSignatureArgsMatching(args, [TEMPLATE(_, args, _) | _]).
+  acRuleSignatureArgsMatching(args, [POINTCUT(_, args) | _]).
+  acRuleSignatureArgsMatching(args, [_ | ts]) :- acRuleSignatureArgsMatching(args, ts).
+
+rules // predicates
+
+  defOk(s, Predicate(p, args, exp)) :- predicateOk(s, p, args, exp, TRUE()).
+  acDefOk(s, PredicateAc(p, args, exp)) :- predicateOk(s, p, args, exp, TRUE()).
+  declEntityBodyDeclaration(s, _, PredicateInEntity(p, args, exp)) :- predicateOk(s, p, args, exp, FALSE()).
+
+  // last bool denotes if predicate is declared in global scope
+  predicateOk : scope * string * OptFormalArgs * Exp * BOOL
+  predicateOk(s, p, FormalArgs(args), exp, global) :- { bool s_predicate argTypes principalType }
+    bool == bool(s),
+    new s_predicate, s_predicate -F-> s,
+    argTypes == typesOfArgs(s, args),
+    declareParameters(s_predicate, zipArgTypes(args, argTypes)),
+    principalType == principalType(s) | error $[Cannot have access control rules without a principal declaration] @p, // correct error message for tests
+    declareVar(s_predicate, "principal", principalType),
+    declareVar(s_predicate, "loggedIn", bool),
+    equalType(typeOfExp(s_predicate, exp), bool) | error $[Predicate should contain a Bool expression] @exp, // correct error message for tests
+    declPredicate(s, p, argTypes, bool, global).
+
+  // last bool arg denotes if the scope is global
+  declPredicate : scope * string * list(TYPE) * TYPE * BOOL
+  declPredicate(s, p, argTypes, return, TRUE()) :- declFunctionGlobal(s, p, argTypes, return).
+  declPredicate(s, p, argTypes, return, FALSE()) :- declFunctionEntity(s, p, argTypes, return, FALSE()).
+
+rules // pointcuts
+
+  acDefOk(s, AccessControlPointcut(p, fargs, elems)) :- { ts s_pointcut }
+    ts == typesOfArgs(s, fargs),
+    declarePointcut(s, p, ts),
+    new s_pointcut,
+    declareParameters(s_pointcut, zipArgTypes(fargs, ts)),
+    acPointcutElemsOk(s, s_pointcut, argNames(fargs), ts, elems).
+
+  acPointcutElemsOk maps acPointcutElemOk(*, *, *, *, list(*))
+  acPointcutElemOk : scope * scope * list(string) * list(TYPE) * AccessControlPointcutElement
+  acPointcutElemOk(s, s_pointcut, pointcutArgNames, ts, elem@AccessControlPointcutElement(_, _, args, _)) :-
+    acPointcutElementDefined(s, s_pointcut, elem),
+    pointcutArgsUsed(pointcutArgNames, args, elem).
+//    sameElements(pointcutArgNames, args) | error $[Pointcut element must use all pointcut arguments: [pointcutArgNames]] @elem.
+
+  acPointcutElementDefined : scope * scope * AccessControlPointcutElement
+  acPointcutElementDefined(_, _, AccessControlPointcutElement(_, MatchName(p, WildCardArg()), _, _)).
+  acPointcutElementDefined(_, _, AccessControlPointcutElement(t, _, _, _)) :-
+    false | error $[Only pages, templates, ajaxtemplates and actions are supported in pointcuts] @t.
+
+  acPointcutElementDefined(s, s_pointcut, elem@AccessControlPointcutElement(ACTypePage(), MatchName(p, _), args, optWc)) :- { ts argTypes }
+    argTypes == typesOfPointcutIdentifiers(s_pointcut, args),
+    resolvePage(s, p) == [(_, (_, PAGE(_, ts)))] | error $[Page rule refers to non-existing page [p]] @p, // correct error message for tests
+    acPointcutElementArgsCompatible(argTypes, ts, optWc) | error $[Incompatible argument types for page [p]] @elem.
+
+  acPointcutElementDefined(s, s_pointcut, elem@AccessControlPointcutElement(ACTypeTemplate(), MatchName(t, _), args, optWc)) :- { ts argTypes }
+    argTypes == typesOfPointcutIdentifiers(s_pointcut, args),
+    resolveTemplateNoAjax(s, t) == [(_, (_, TEMPLATE(_, ts, _)))] | error $[Template rule refers to non-existing template [t]] @t, // correct error message for tests
+    acPointcutElementArgsCompatible(argTypes, ts, optWc) | error $[Template rule refers to non-existing template [t] for the given argument types] @elem. // correct error message for tests
+
+  acPointcutElementDefined(s, s_pointcut, elem@AccessControlPointcutElement(ACTypeAjaxTemplate(), MatchName(t, _), args, optWc)) :- { ts argTypes }
+    argTypes == typesOfPointcutIdentifiers(s_pointcut, args),
+    resolveAjaxTemplate(s, t) == [(_, (_, TEMPLATE(_, ts, _)))] | error $[Ajax template rule refers to non-existing template [t]] @t, // correct error message for tests
+    acPointcutElementArgsCompatible(argTypes, ts, optWc) | error $[Ajax template rule refers to non-existing template [t] for the given argument types] @elem. // correct error message for tests
+
+  acPointcutElementDefined(_, _, elem@AccessControlPointcutElement(ACTypeAction(), _, _, _)).
+
+  acPointcutElementArgsCompatible : list(TYPE) * list(TYPE) * OptWildCardArg
+  acPointcutElementArgsCompatible([], [], _).
+  acPointcutElementArgsCompatible([], [_ | _], WildCardArg()).
+  acPointcutElementArgsCompatible([], [_ | _], OptWildCardArgNone()) :- false.
+  acPointcutElementArgsCompatible([_ | _], [], _) :- false.
+  acPointcutElementArgsCompatible([t1 | t1s], [t2 | t2s], optWc) :-
+    typeCompatible(t1, t2),
+    acPointcutElementArgsCompatible(t1s, t2s, optWc).
+
+rules // utils
+
+  principalPropertyTypes maps principalPropertyType(*, list(*), *) = list(*)
+  principalPropertyType : scope * string * string -> TYPE
+  principalPropertyType(s, x, ent) = t :-
+    t == propertyType(s, x) | error $[[x] is not a property of entity [ent]]. // correct error message for tests
+  principalPropertyType(s, x@"name", ent) = t :-
+    t == propertyType(s, x) | error $[Principal credential type [ent] does not have a [x] property, a property with [x] annotation is not sufficient for use as credential]. // correct error message for tests
+
+  principalDefined : scope
+  principalDefined(s) :- { t }
+    principalType(s) == t | error $[Principal is not defined].
+
+  principalType : scope -> TYPE
+  principalType(s) = t :- { s_securityContext }
+    resolveType(s, "securityContext") == [(_, (_, ENTITY(_, s_securityContext)))] | error $[securityContext not defined],
+    resolveProperty(s_securityContext, "principal") == [(_, (_, t))]. // no fixed error message here to allow more specific error messages on higher predicates
+
+  credentialTypes : scope -> list(TYPE)
+  credentialTypes(s) = ts :- { s_securityContext result }
+    resolveType(s, "securityContext") == [(_, (_, ENTITY(_, s_securityContext)))] | error $[securityContext not defined],
+    queryResultTypes(resolveProperty(s_securityContext, "_credentials")) == result,
+    result == [CREDENTIALS(ts) | _] | error $[No credentials have been defined].
+
+  typesOfPointcutIdentifiers maps typesOfPointcutIdentifier(*, list(*)) = list(*)
+  typesOfPointcutIdentifier : scope * string -> TYPE
+  typesOfPointcutIdentifier(s, x) = t :-
+    resolveVar(s, x) == [(_, (_, t))] | error $[Pointcut element uses unknown identifier [x]]. // correct error message for tests
+
+  pointcutArgsUsed maps pointcutArgUsed(list(*), *, *)
+  pointcutArgUsed : string * list(string) * AccessControlPointcutElement
+  pointcutArgUsed(x, [], loc) :- false | error $[Pointcut element must use pointcut argument [x]] @loc. // correct error message for tests
+  pointcutArgUsed(x, [x | _], _).
+  pointcutArgUsed(x, [_ | ys], loc) :- pointcutArgUsed(x, ys, loc).

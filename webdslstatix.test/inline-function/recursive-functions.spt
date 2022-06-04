@@ -1,0 +1,67 @@
+module inline-function/name-fix
+
+language webdsl-statix
+
+test inserted definition captures function body definition [[
+built-in-library
+section testing
+
+function to_ten(x : Int) : Int {
+  var result : Int := 0;
+  if (x < 10) {
+    result := [[to_ten(x + 1)]];
+  } else { }
+  return result;
+}
+]] run inline-function-test(|#1) to [[
+built-in-library
+section testing
+
+function to_ten(x : Int) : Int {
+  var result : Int := 0;
+  if (x < 10) {
+    var x_0 : Int := x + 1;
+    var result_0 : Int := 0;
+    if (x_0 < 10) {
+      result_0 := to_ten(x_0 + 1);
+    } else { }
+    result := result_0;
+  } else { }
+  return result;
+}
+]]
+
+test inserted definition captures function body definition [[
+built-in-library
+section testing
+
+var x : Int := 5;
+
+function foo() : Int {
+  var y : Int := x;
+  var x : Int := 2;
+  {
+    [[foo()]];
+  }
+  return x + y;
+}
+]] run inline-function-test(|#1) to [[
+built-in-library
+section testing
+
+var x : Int := 5;
+
+function foo() : Int {
+  var y : Int := x;
+  var x_1 : Int := 2;
+  {
+    var y_0 : Int := x;
+    var x_0 : Int := 2;
+    {
+      foo();
+    }
+    x_0 + y_0;
+  }
+  return x_1 + y;
+}
+]]

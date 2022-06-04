@@ -79,12 +79,16 @@ rules
   fix-semantic-errors-single-file(editor-analyze, ls-fix-semantic-errors, add-error|
     (old-ast, old-analysis), inline-errors): previous-ast -> (new-ast, new-analysis)
     where
+      <debug> "|||Re-analysis start:";
+      <debug> <real-to-string> <run-time>;
       // Get scope graph of the transformed AST.
         ((new-ast', new-analysis', analysis-errors) := 
           <re-analyze-ast-single-file(editor-analyze)> (previous-ast, old-analysis)
           <+ <add-error(|"Failed to analyze the transformed AST", 
                           [("new-ast", previous-ast)]
                          )> inline-errors)
+      ; <debug> "|||Re-analysis end:"
+      ; <debug> <real-to-string> <run-time>
       // Check if the Statix analysis returned errors.
       ; if <eq> (analysis-errors, [])
         then 

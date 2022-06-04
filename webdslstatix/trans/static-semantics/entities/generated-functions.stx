@@ -1,0 +1,54 @@
+module static-semantics/entities/generated-functions
+
+imports
+  static-semantics/entities/annotations
+
+  static-semantics/types/built-ins
+
+  static-semantics/webdsl
+  static-semantics/webdsl-actions
+  static-semantics/webdsl-types
+
+rules
+
+/*
+  declare findEntity(<idType>) or loadEntity(<uuid>) based
+  on presence of `(id)` annotation and type
+*/
+
+  defOk(s, GeneratedDefinition(Generated(["loadOrFindEntity", entityName, loadName, findName, getUniqueName, isUniqueName, isUniqueIdName]))) :- { s_ent t }
+    resolveType(s, entityName) == [(_, (_, t@ENTITY(_, s_ent)))],
+    declareLoadOrFindEntity(s, loadName, findName, getUniqueName, isUniqueName, isUniqueIdName, t, hasIdAnnotationB(s_ent)).
+
+  declareLoadOrFindEntity : scope * string * string * string * string * string * TYPE * BOOL
+  declareLoadOrFindEntity(s, loadName, _, _, _, _, t, FALSE()) :-
+    declareFunction(s, loadName, [uuid(s)], t).
+
+  declareLoadOrFindEntity(s, _, findName, getUniqueName, isUniqueName, isUniqueIdName, t, TRUE()) :- { s_ent idName idType bool }
+    bool == bool(s),
+    t == ENTITY(_, s_ent),
+    resolveAnnotationByAnno(s_ent, ID()) == [(_, (idName, _))],
+    idType == propertyType(s_ent, idName),
+    declareFunction(s, findName, [idType], t),
+    declareFunction(s, getUniqueName, [idType], t),
+    declareFunction(s, isUniqueName, [t], bool),
+    declareFunction(s, isUniqueIdName, [idType], bool),
+    declareFunction(s, isUniqueIdName, [idType, t], bool).
+
+rules
+
+/*
+  declare findEntityByProperty and findEntityByPropertyLike if
+  the property is string-type compatible
+*/
+
+  defOk(s, GeneratedDefinition(Generated(["findEntityByProperty", entityName, propertyName, findByPropName, findByPropLikeName]))) :- { entType s_ent propType }
+    resolveType(s, entityName) == [(_, (_, entType@ENTITY(_, s_ent)))],
+    propType == propertyType(s_ent, propertyName),
+    declareFindEntityByProperty(s, findByPropName, findByPropLikeName, entType, propType, typeCompatibleB(propType, string(s))).
+
+  declareFindEntityByProperty : scope * string * string * TYPE * TYPE * BOOL
+  declareFindEntityByProperty(_, _, _, _, _, FALSE()).
+  declareFindEntityByProperty(s, findByPropName, findByPropLikeName, entType, propType, TRUE()) :-
+    declareFunction(s, findByPropName, [propType], LIST(entType)),
+    declareFunction(s, findByPropLikeName, [propType], LIST(entType)).

@@ -1,0 +1,206 @@
+module inline-function/duplicate-definitions
+
+language webdsl-statix
+
+test rename duplicate definition when both are used (regular definition) [[
+built-in-library
+section testing
+
+function foo() : Int {
+  var x : Int := 3;
+  return x + 1;
+}
+
+function main() : Void {
+  var x : Int := 5;
+  [[foo()]];
+  x := 6;
+}
+]] run inline-function-test(|#1) to [[
+built-in-library
+section testing
+
+function foo() : Int {
+  var x : Int := 3;
+  return x + 1;
+}
+
+function main() : Void {
+  var x : Int := 5;
+  var x_0 : Int := 3;
+  x_0 + 1;
+  x := 6;
+}
+]]
+
+test rename duplicate definition when both are used (parameter) [[
+built-in-library
+section testing
+
+function foo(x : Int) : Int {
+  return x + 1;
+}
+
+function main() : Void {
+  var x : Int := 5;
+  [[foo(3)]];
+  x := 6;
+}
+]] run inline-function-test(|#1) to [[
+built-in-library
+section testing
+
+function foo(x : Int) : Int {
+  return x + 1;
+}
+
+function main() : Void {
+  var x : Int := 5;
+  var x_0 : Int := 3;
+  x_0 + 1;
+  x := 6;
+}
+]]
+
+test rename duplicate definition when original definition is unused [[
+built-in-library
+section testing
+
+function foo(x : Int) : Int {
+  return x + 1;
+}
+
+function main() : Void {
+  var x : Int := 5;
+  [[foo(3)]];
+}
+]] run inline-function-test(|#1) to [[
+built-in-library
+section testing
+
+function foo(x : Int) : Int {
+  return x + 1;
+}
+
+function main() : Void {
+  var x : Int := 5;
+  var x_0 : Int := 3;
+  x_0 + 1;
+}
+]]
+
+test rename duplicate definition when inserted definition is unused (regular definition) [[
+built-in-library
+section testing
+
+function foo() : Int {
+  var x : Int := 3;
+  return 1;
+}
+
+function main() : Void {
+  var x : Int := 5;
+  [[foo()]];
+  x := 6;
+}
+]] run inline-function-test(|#1) to [[
+built-in-library
+section testing
+
+function foo() : Int {
+  var x : Int := 3;
+  return 1;
+}
+
+function main() : Void {
+  var x : Int := 5;
+  var x_0 : Int := 3;
+  1;
+  x := 6;
+}
+]]
+
+test rename duplicate definition when inserted definition is unused (parameter) [[
+built-in-library
+section testing
+
+function foo(x : Int) : Int {
+  return 1;
+}
+
+function main() : Void {
+  var x : Int := 5;
+  [[foo(3)]];
+  x := 6;
+}
+]] run inline-function-test(|#1) to [[
+built-in-library
+section testing
+
+function foo(x : Int) : Int {
+  return 1;
+}
+
+function main() : Void {
+  var x : Int := 5;
+  var x_0 : Int := 3;
+  1;
+  x := 6;
+}
+]]
+
+test rename duplicate definition when both are unused (regular definition) [[
+built-in-library
+section testing
+
+function foo() : Int {
+  var x : Int := 3;
+  return 1;
+}
+
+function main() : Void {
+  var x : Int := 5;
+  [[foo()]];
+}
+]] run inline-function-test(|#1) to [[
+built-in-library
+section testing
+
+function foo() : Int {
+  var x : Int := 3;
+  return 1;
+}
+
+function main() : Void {
+  var x : Int := 5;
+  var x_0 : Int := 3;
+  1;
+}
+]]
+
+test rename duplicate definition when both are unused (parameter) [[
+built-in-library
+section testing
+
+function foo(x : Int) : Int {
+  return 1;
+}
+
+function main() : Void {
+  var x : Int := 5;
+  [[foo(3)]];
+}
+]] run inline-function-test(|#1) to [[
+built-in-library
+section testing
+
+function foo(x : Int) : Int {
+  return 1;
+}
+
+function main() : Void {
+  var x : Int := 5;
+  var x_0 : Int := 3;
+  1;
+}
+]]

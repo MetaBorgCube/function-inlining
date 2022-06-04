@@ -26,8 +26,8 @@ rules
 //    | "inlined.cpp")
   
   // Change to "id" to enable- and "fail" to disable multi-file mode.
-  multi = id
-//  multi = fail
+//  multi = id
+  multi = fail
   
   ls-extract-data(|()): t -> (t, name, args)
     where
@@ -54,7 +54,7 @@ rules
   
   ls-is-return = ?Return(_)
   
-  ls-construct-block: (body, params) -> (Compound(<concat> [params, body]))
+  ls-construct-block: (body, params) -> Compound(<concat> [params, body])
   
   ls-is-exp-language = fail
   
@@ -85,6 +85,8 @@ rules
   // Therefore we just remove the statement containing the function call.
   ls-remove-exp(|exp): ast -> ast-t
     where
+      // split-fetch ensures that the element is in the list.
+      // If we would use filter instead, the strategy would succeed for all lists.
       ast-t := <oncetd(<conc> <split-fetch(?Exp(exp))>)> ast
 
   // other-asts equals [] unless multi-file mode is enabled and there are other programs in the project.

@@ -1,7 +1,8 @@
-#include "inlinefunction/dummy.cpp"
+int foo(int x) {
+  return x;
+}
 
 int main() {
-    int x = 2;
     foo(5);
 }
 
