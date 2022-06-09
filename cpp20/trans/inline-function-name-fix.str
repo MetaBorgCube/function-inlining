@@ -33,6 +33,7 @@ rules
       ; (rho-t := <mapconcat(construct-ref-relations(|new-ids))> [(ast-t', analysis-t)|asts-analyses-t]
         <+ <add-error(|"Failed to construct rho-t", [])> inline-errors)
       // Get domain of rho.
+      
       ; dom-rho-s := <make-set> <map(Fst)> rho-s
       ; dom-rho-t := <make-set> <map(Fst)> rho-t
       
@@ -40,17 +41,18 @@ rules
       // Check that no non-inlined terms reference an inlined declaration.
       // This is necessary because name-fix gives the inlined declarations the same ID as the original ones.
       ; ast-t'' := <fix-references-to-inlined-declarations(|analysis-t, rho-s)> ast-t'
+      
       ; if not(<eq> (ast-t'', ast-t'))
         // If names have changed, we need to re-analyze so we need to restart name-fix.
         then ast-t-fixed := <name-fix(multi, editor-analyze, add-error, ls-fix-semantic-errors|
             (ast-s, analysis-s), asts-analyses, project-analysis, vs, new-ids, inline-errors)> ast-t''
         // Else we can continue
         else
-          // For every 'v' in dom-rho-t, check for capture.
+        // For every 'v' in dom-rho-t, check for capture.
           (capture-relations := <collect(check-capture(|dom-rho-s, rho-s, rho-t))> dom-rho-t
         <+ <add-error(|"Something went wrong while checking relations for capture during name-fix",
                       [("rho-s", rho-s), ("rho-t", rho-t)])> inline-errors)
-        
+
         ; if <eq> (capture-relations, [])
           // There are no captured relations, so return AST unchanged.
           then ast-t-fixed := ast-t'

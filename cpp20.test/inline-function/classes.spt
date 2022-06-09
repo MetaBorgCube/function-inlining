@@ -57,3 +57,25 @@ int main() {
     x + y;
 }
 ]]
+
+// It seems like virtual methods are not implemented in the Statix analysis.
+//test dynamic dispatch [[
+//class Animal {
+//public:
+//  virtual void sound() = 0;
+//};
+//
+//class Dog : public Animal {
+//  void sound() override { 1; }
+//};
+//
+//class Cat : public Animal {
+//  void sound() override { 2; }
+//};
+//
+//int main() {
+//  Animal* p;
+//  [[p->sound()]];
+//}
+//]] run inline-function-test(|#1) fails
+

@@ -8,42 +8,43 @@ imports
   inline-function-name-fix
 
 rules
+  // Separate rule for SPT tests.
   inline-function-test(|selected-term): ast -> <inline-function(ls-extract-data, ls-make-decs,
     ls-fix-control-flow, ls-is-return, ls-construct-block, ls-is-exp-language, ls-is-statement,
     ls-insert-before, ls-remove-exp, ls-fix-semantic-errors, editor-analyze, multi
     |<new-iset>)> (selected-term, ast)
 
+  // At the time of writing, construct-textual-change doesn't work because of issues with 
+  // origin tracking. In case it is fixed, replace pp-debug with construct-textual-change.
   inline-function-menu-action = inline-function-action(pp-debug, ls-extract-data, ls-make-decs,
     ls-fix-control-flow, ls-is-return, ls-construct-block, ls-is-exp-language, ls-is-statement,
     ls-insert-before, ls-remove-exp, ls-fix-semantic-errors, editor-analyze, multi
     | "inlined.cpp")
-   
-    // At the time of writing, construct-textual-change doesn't work because of issues with origin tracking.
-    // In case it is fixed, the definition below can be uncommented to replace the definition above.
-//  inline-function-menu-action-2 = inline-function-action(construct-textual-change, ls-extract-data, ls-make-decs,
-//    ls-fix-control-flow, ls-is-return, ls-construct-block, ls-is-exp-language, ls-is-statement,
-//    ls-insert-before, ls-remove-exp, ls-fix-semantic-errors, editor-analyze, multi
-//    | "inlined.cpp")
   
   // Change to "id" to enable- and "fail" to disable multi-file mode.
 //  multi = id
   multi = fail
   
+  // Match on function call terms, returning the full term, name and arguments. 
   ls-extract-data(|()): t -> (t, name, args)
     where
       <?Call(Var(NamespaceID(_, name)), args)> t
   ls-extract-data(|()): t -> (t, name, args) 
     where
       <?Call(Proj(_, name), args)> t
-  ls-extract-data(|name): FunDef(type, Declarator(_, FunDeclTyped(IdDecl(name), ParamList(params))), _, body) 
+  // Match on function definition terms, returning the parameters, body and type.
+  ls-extract-data(|name): FunDef(type, Declarator(_, FunDeclTyped(IdDecl(name), 
+      ParamList(params))), _, body) 
     -> (params, body, type)
-    
+  
+  // Turn parameter definitions and arguments into variable definitions.
   ls-make-decs: (params, args) -> decs
     where
       decs := <zip(\ (ParamDecl1(type, name), value) 
                       -> Decl(type, [InitDecl(name, value)]) \)>
                 (params, args)
-                   
+  
+  // Get rid of the last return statement. Also extract the return expression.
   ls-fix-control-flow(|[Void()]): Compound(body) -> (body', ())
     where
       (body', Return(NoExp())) := <split-init-last> body
@@ -52,14 +53,19 @@ rules
     where
       (body', Return(return-exp)) := <split-init-last> body
   
+  // Match on return statements.
   ls-is-return = ?Return(_)
   
+  // Combine variable definitions and a list of statements into a new list of statements.
   ls-construct-block: (body, params) -> Compound(<concat> [params, body])
   
+  // Indicate that this is a statement language.
   ls-is-exp-language = fail
   
+  // Match on statement terms.
   ls-is-statement = is-cpp20-BlockItem-or-inj
   
+  // Insert a list of statements before the argument statement in the AST.
   ls-insert-before(|stmt, block): ast -> ast-t
     where
       ast-t := <oncetd(insert-before-helper(|stmt, block))> ast
@@ -89,13 +95,16 @@ rules
       // If we would use filter instead, the strategy would succeed for all lists.
       ast-t := <oncetd(<conc> <split-fetch(?Exp(exp))>)> ast
 
-  // other-asts equals [] unless multi-file mode is enabled and there are other programs in the project.
-  // It is passed on in case the other files are needed to fix a semantic error.
+  // other-asts equals [] unless multi-file mode is enabled and there are other programs in 
+  // the project. It is passed on in case the other files are needed to fix a semantic error.
   // If it is filled, it contains (ast, tuple) entries.
-  ls-fix-semantic-errors(|analysis-errors, (old-ast, old-analysis), asts-analyses): new-ast -> fixed-ast
+  ls-fix-semantic-errors(|analysis-errors, (old-ast, old-analysis), asts-analyses): 
+    new-ast -> fixed-ast
     where
-        (duplicate-term, _) := <fetch-elem(where(Snd; string-ends-with(|"already defined")))> analysis-errors
-      ; fixed-ast := <rename-duplicate-declaration> ((old-ast, old-analysis), asts-analyses, new-ast, duplicate-term)
+        (duplicate-term, _) := <fetch-elem(where(Snd; string-ends-with(|"already defined")))>
+          analysis-errors
+      ; fixed-ast := <rename-duplicate-declaration> ((old-ast, old-analysis), 
+                                                     asts-analyses, new-ast, duplicate-term)
       
       
       

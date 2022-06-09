@@ -46,7 +46,7 @@ rules
             (ast-s, analysis-s), asts-analyses, project-analysis, vs, new-ids, inline-errors)> ast-t''
         // Else we can continue
         else
-          // For every 'v' in dom-rho-t, check for capture.
+        // For every 'v' in dom-rho-t, check for capture.
           (capture-relations := <collect(check-capture(|dom-rho-s, rho-s, rho-t))> dom-rho-t
         <+ <add-error(|"Something went wrong while checking relations for capture during name-fix",
                       [("rho-s", rho-s), ("rho-t", rho-t)])> inline-errors)
@@ -79,12 +79,16 @@ rules
   fix-semantic-errors-single-file(editor-analyze, ls-fix-semantic-errors, add-error|
     (old-ast, old-analysis), inline-errors): previous-ast -> (new-ast, new-analysis)
     where
+      <debug> "|||Re-analysis start:";
+      <debug> <real-to-string> <run-time>;
       // Get scope graph of the transformed AST.
         ((new-ast', new-analysis', analysis-errors) := 
           <re-analyze-ast-single-file(editor-analyze)> (previous-ast, old-analysis)
           <+ <add-error(|"Failed to analyze the transformed AST", 
                           [("new-ast", previous-ast)]
                          )> inline-errors)
+      ; <debug> "|||Re-analysis end:"
+      ; <debug> <real-to-string> <run-time>
       // Check if the Statix analysis returned errors.
       ; if <eq> (analysis-errors, [])
         then 

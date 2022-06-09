@@ -1,0 +1,6 @@
+let
+  function foo () =
+    print("test")
+in
+  foo()
+end

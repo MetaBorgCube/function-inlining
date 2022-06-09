@@ -16,7 +16,7 @@ rules
     ls-construct-block, ls-is-exp-language, ls-is-statement, ls-insert-before, ls-remove-exp,
     ls-fix-semantic-errors, editor-analyze, multi
     |extension): (selected-term, _, ast, path, _) -> result
-   with // TODO: Replace with where
+	 with // TODO: Replace with where
         // TODO: Replace 'filename' with 'path' instead of a new file, such that the refactoring happens in the same file.
         filename := <guarantee-extension(|extension)> path // Filename to store new program in.
       ; inline-errors := <new-iset>
@@ -27,11 +27,11 @@ rules
             ls-is-statement, ls-insert-before, ls-remove-exp, ls-fix-semantic-errors, 
             editor-analyze, multi
             |inline-errors))> (selected-term, ast)
-          ; transformed-source-code := <pp-debug> new-ast
+        	; transformed-source-code := <pp-debug> new-ast
           // At the time of writing, construct-textual-change doesn't work because of issues with origin tracking.
           // In case it is fixed, the line below can be uncommented to replace the line above.
-//          ; (_, _, transformed-source-code) := <construct-textual-change> (ast, new-ast)
-          ; result := (filename, transformed-source-code)
+//        	; (_, _, transformed-source-code) := <construct-textual-change> (ast, new-ast)
+        	; result := (filename, transformed-source-code)
           ; <show-dialog(|"Inline Function", "Info")> <strcat> ("The Function Call has been inlined in file: \n> ", filename)
         ) <+ (
           <display-errors> inline-errors
@@ -48,6 +48,9 @@ rules
     ls-fix-semantic-errors, editor-analyze, multi
     |inline-errors): (selected-term, ast) -> ast-result
     where
+      <debug> "Start:";
+      <debug> <real-to-string> <run-time>;
+      
       // Get the (full project) scope graph and a list of ASTs if multi-file analysis is enabled.
       if multi
         then asts := <get-other-asts> ast
@@ -152,12 +155,20 @@ rules
           ; asts-analyses := []
         end <+ <add-error(|"get-project-analysis failed or stx-get-ast-analysis failed on an ast.", [])> inline-errors)
       
+      ; <debug> "|Name-fix start:"
+      ; <debug> <real-to-string> <run-time>
       ; (ast-result := <name-fix(multi, editor-analyze, add-error, ls-fix-semantic-errors|
                         (ast-s, analysis-s), asts-analyses, project-analysis, vs, new-ids, inline-errors)> ast-t'
           <+ <add-error(|"Name-fix failed to validate/fix the transformed AST.", [("ast", ast-t')])> inline-errors)      
-
+      ; <debug> "|Name-fix end:"
+      ; <debug> <real-to-string> <run-time>
+      
       ; <iset-destroy> vs
-      ; <hashtable-destroy> new-ids        
+      ; <hashtable-destroy> new-ids
+      
+      ; <debug> "End:"
+      ; <debug> <real-to-string> <run-time>
+      ; <debug> ""    
 
 
   // Helper strategies to display error messages.
